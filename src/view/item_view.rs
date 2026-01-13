@@ -33,7 +33,11 @@ pub fn from_item(p: &ItemPresentation) -> ItemView {
         }),
 
         requirements: p.requirements.iter().map(|r| TextView {
-            value: format!("Required {}: {}", r.requirement.stat_type, r.requirement.amount),
+            value: format!("Required {}: {}{}{}",
+                           r.requirement.stat_type,
+                           if r.is_modified {"%mod_start"} else {""},
+                           r.requirement.amount,
+                           if r.is_modified { "%mod_end" } else { "" }),
             style: if r.is_met {
                 TextStyle::Normal
             } else {
@@ -42,7 +46,7 @@ pub fn from_item(p: &ItemPresentation) -> ItemView {
         }).collect(),
 
         item_class: TextView {
-            value: p.item_base.clone(),
+            value: p.item_class.clone(),
             style: rarity_style,
         },
 

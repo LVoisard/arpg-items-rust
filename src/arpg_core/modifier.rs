@@ -70,6 +70,39 @@ impl PartialEq<ModifierPass> for ModifierPass {
     }
 }
 
+pub struct FlatStatModifier {
+    pub value: i32,
+    pub stat: StatType,
+    pub target: ModifierTargetKind,
+}
+
+impl Modifier for FlatStatModifier {
+    fn apply_to(&self, mut target: ModifierTarget) {
+        if target.kind() != self.target {
+            return;
+        }
+
+        let Some(stats) = target.stats_mut() else {
+            return;
+        };
+
+        if let Some(stat) = stats.get_mut(self.stat) {
+            stat.value = (stat.value as f32 * (1.0 + (self.value as f32) / 100.0)) as i32
+        }
+    }
+
+    fn pass(&self) -> &ModifierPass {
+        &ModifierPass::Flat
+    }
+
+    fn description(&self) -> String {
+        format!("+{} {}", self.value, self.stat)
+    }
+
+    fn get_affected_stat(&self) -> StatType {
+        self.stat
+    }
+}
 pub struct BasicStatModifier {
     pub value: i32,
     pub stat: StatType,
@@ -144,7 +177,6 @@ impl Modifier for FrontStatModifier {
                 }
             }
         }
-
     }
 
     fn pass(&self) -> &ModifierPass {
@@ -162,6 +194,61 @@ impl Modifier for FrontStatModifier {
         self.front
     }
 }
+
+pub struct CompositeStatModifier {
+    pub values: Vec<i32>,
+    pub stats: Vec<StatType>,
+    pub modifier_kind: ModifierKind,
+    pub modifier_pass: ModifierPass,
+    pub target: ModifierTargetKind,
+}
+
+impl Modifier for CompositeStatModifier {
+    fn apply_to(&self, mut target: ModifierTarget) {
+        if target.kind() != self.target {
+            return;
+        }
+
+        let Some(stats) = target.stats_mut() else {
+            return;
+        };
+
+        for (index, stat) in self.stats.iter().enumerate() {
+            if let Some(stat) = stats.get_mut(*stat) {
+                match self.modifier_kind {
+                    ModifierKind::Flat => stat.value += self.values[index],
+                    ModifierKind::Percent => {
+                        stat.value =
+                            (stat.value as f32 * (1.0 + (self.values[index] as f32) / 100.0)) as i32
+                    }
+                }
+            }
+        }
+    }
+
+    fn pass(&self) -> &ModifierPass {
+        &self.modifier_pass
+    }
+
+    fn description(&self) -> String {
+        let mut res = String::new();
+        for (index, stat) in self.stats.iter().enumerate() {
+            match self.modifier_kind {
+                ModifierKind::Flat => res.push_str(format!("+{} {}", self.values[index], stat).as_str()),
+                ModifierKind::Percent => res.push_str(format!("+%{} {}", self.values[index], stat).as_str())
+            }
+            if index < self.stats.len() - 1 {
+                res.push_str(", ");
+            }
+        }
+        res
+    }
+
+    fn get_affected_stat(&self) -> StatType {
+        self.stats[0]
+    }
+}
+
 
 pub struct RequirementModifier {
     pub value: i32,

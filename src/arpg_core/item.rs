@@ -1,7 +1,6 @@
-use crate::arpg_core::modifier::{Modifier, ModifierKind, ModifierPass, ModifierTarget};
+use crate::arpg_core::modifier::{Modifier, ModifierPass, ModifierTarget};
 use crate::arpg_core::requirement::{RequirementBlock, StatRequirement};
 use crate::arpg_core::stat::{StatBlock, StatType};
-use std::cmp::PartialEq;
 use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Debug)]
@@ -22,6 +21,7 @@ pub struct ItemPresentation {
 
     pub damage: Option<DamageLine>,
     pub requirements: Vec<RequirementLine>,
+    pub item_class: String,
     pub modifiers: Vec<String>,
 }
 
@@ -34,6 +34,7 @@ pub struct DamageLine {
 pub struct RequirementLine {
     pub requirement: StatRequirement,
     pub is_met: bool,
+    pub is_modified: bool,
 }
 
 impl Debug for Box<dyn Modifier> {
@@ -104,6 +105,7 @@ impl Item {
             RequirementLine {
                 requirement: r,
                 is_met: met,
+                is_modified: self.modifiers.iter().any(|m| m.get_affected_stat() == StatType::Requirements)
             }
         }).collect();
 
@@ -111,6 +113,7 @@ impl Item {
             name: self.name.clone(),
             item_base: self.item_base.clone(),
             rarity: self.rarity,
+            item_class: self.item_class.to_string(),
             damage,
             requirements,
             modifiers: self.modifiers.iter().map(|m| m.description()).collect(),
@@ -129,12 +132,14 @@ pub enum ItemRarity {
 #[derive(Debug)]
 pub enum ItemClass {
     Equipment(EquipmentType),
+    None
 }
 
 impl Display for ItemClass {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             ItemClass::Equipment(equipment_type) => write!(f, "{}", equipment_type.to_string()),
+            ItemClass::None => write!(f, "{}", "None")
         }
     }
 }

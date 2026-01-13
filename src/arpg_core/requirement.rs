@@ -1,7 +1,4 @@
-use std::cmp::PartialEq;
 use crate::arpg_core::stat::{Stat, StatType};
-
-
 
 #[derive(Debug, Clone)]
 pub struct StatRequirement {
@@ -10,7 +7,7 @@ pub struct StatRequirement {
 }
 
 impl StatRequirement {
-     pub fn is_met(&self, stat: &Stat) -> bool {
+    pub fn is_met(&self, stat: &Stat) -> bool {
         self.stat_type == stat.stat_type && self.amount <= stat.value
     }
 }
@@ -18,4 +15,12 @@ impl StatRequirement {
 #[derive(Debug, Clone)]
 pub struct RequirementBlock {
     pub requirements: Vec<StatRequirement>
+}
+
+impl Default for RequirementBlock {
+    fn default() -> Self {
+        RequirementBlock {
+            requirements: Vec::new(),
+        }
+    }
 }

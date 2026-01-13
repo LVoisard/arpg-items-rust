@@ -1,11 +1,15 @@
 use std::fmt::{Display, Formatter};
-use std::os::linux::raw::stat;
-use crate::arpg_core::modifier::{Modifier};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Stat {
     pub stat_type: StatType,
-    pub value: i32
+    pub value: i32,
+}
+
+impl Stat {
+    pub fn new(stat_type: StatType, value: i32) -> Stat {
+        Stat { stat_type, value }
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -34,7 +38,7 @@ impl Display for StatType {
             StatType::MinimumDamage => write!(f, "Minimum Damage"),
             StatType::MaximumDamage => write!(f, "Maximum Damage"),
             StatType::Defense => write!(f, "Defence"),
-            StatType::IncreasedAttackSpeed => write!(f, "Increased Attack Speed")
+            StatType::IncreasedAttackSpeed => write!(f, "Increased Attack Speed"),
         }
     }
 }
@@ -60,27 +64,22 @@ pub struct StatBlock {
     pub stats: Vec<Stat>,
 }
 
-
 impl StatBlock {
     pub fn get(&self, stat_type: StatType) -> Option<&Stat> {
-        self.stats
-            .iter()
-            .find(|&x| x.stat_type == stat_type)
+        self.stats.iter().find(|&x| x.stat_type == stat_type)
     }
 
     pub fn get_mut(&mut self, stat_type: StatType) -> Option<&mut Stat> {
-         self.stats
-            .iter_mut()
-            .find(|x| x.stat_type == stat_type)
+        self.stats.iter_mut().find(|x| x.stat_type == stat_type)
     }
     pub fn has(&self, stat_type: StatType) -> bool {
-        self.stats
-            .iter()
-            .any(|x| x.stat_type == stat_type)
+        self.stats.iter().any(|x| x.stat_type == stat_type)
     }
 
     pub fn add(&mut self, stat: Stat) {
-        if self.stats.iter().any(|x| x.stat_type == stat.stat_type) { return }
+        if self.stats.iter().any(|x| x.stat_type == stat.stat_type) {
+            return;
+        }
 
         self.stats.push(stat);
     }
@@ -88,8 +87,6 @@ impl StatBlock {
 
 impl Default for StatBlock {
     fn default() -> Self {
-        Self {
-            stats: vec!()
-        }
+        Self { stats: vec![] }
     }
 }

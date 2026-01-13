@@ -3,191 +3,124 @@ mod ui;
 mod view;
 
 use crate::arpg_core::item::{ArmourType, EquipmentType, JewelleryType, WeaponType};
-use crate::arpg_core::modifier::{BasicStatModifier, FrontStatModifier, ModifierKind, ModifierPass, ModifierTargetKind, RequirementModifier};
+use crate::arpg_core::item_builder::{ItemBuilder, ItemCreationError};
+use crate::arpg_core::modifier::{BasicStatModifier, CompositeStatModifier, FlatStatModifier, FrontStatModifier, ModifierKind, ModifierPass, ModifierTargetKind, RequirementModifier};
 use crate::arpg_core::requirement::{RequirementBlock, StatRequirement};
 use crate::arpg_core::stat::{Stat, StatBlock, StatType};
 use crate::view::item_view::ItemView;
 use arpg_core::item::{Item, ItemClass, ItemRarity};
-use std::any::Any;
 use ui::console::console_ui::ConsoleUI;
 use ui::ui::UI;
+
+fn add_item_to_list(
+    item: Result<Item, ItemCreationError>,
+    stats: &StatBlock,
+    items: &mut Vec<ItemView>,
+) {
+    match item {
+        Ok(item) => items.push(view::item_view::from_item(&item.present(stats))),
+        Err(error) => println!("{}", error),
+    }
+}
 
 fn main() {
     let player_stats = StatBlock {
         stats: vec![
-            Stat {
-                stat_type: StatType::Strength,
-                value: 15,
-            },
-            Stat {
-                stat_type: StatType::Dexterity,
-                value: 13,
-            },
-            Stat {
-                stat_type: StatType::Intelligence,
-                value: 8,
-            },
-            Stat {
-                stat_type: StatType::Level,
-                value: 10,
-            },
+            Stat::new(StatType::Strength, 15),
+            Stat::new(StatType::Dexterity, 13),
+            Stat::new(StatType::Intelligence, 8),
+            Stat::new(StatType::Level, 10),
         ],
     };
 
     let mut items = Vec::<ItemView>::new();
 
-    let item1 = Item {
-        name: None,
-        item_base: String::from("Hand Axe"),
-        rarity: ItemRarity::Normal,
-        item_class: ItemClass::Equipment(EquipmentType::Weapon(WeaponType::Axe)),
-        requirements: RequirementBlock {
-            requirements: vec![
-                StatRequirement {
-                    stat_type: StatType::Strength,
-                    amount: 15,
-                },
-                StatRequirement {
-                    stat_type: StatType::Dexterity,
-                    amount: 10,
-                },
-            ],
-        },
-        base_stats: StatBlock {
-            stats: vec![
-                Stat {
-                    stat_type: StatType::MinimumDamage,
-                    value: 2,
-                },
-                Stat {
-                    stat_type: StatType::MaximumDamage,
-                    value: 6,
-                },
-            ],
-        },
-        modifiers: vec![],
-    };
+    let item = ItemBuilder::new()
+        .base(String::from("Hand Axe"))
+        .rarity(ItemRarity::Normal)
+        .class(ItemClass::Equipment(EquipmentType::Weapon(WeaponType::Axe)))
+        .with_requirement(StatType::Strength, 15)
+        .with_requirement(StatType::Dexterity, 12)
+        .with_stat(StatType::MinimumDamage, 2)
+        .with_stat(StatType::MaximumDamage, 6)
+        .build();
 
-    items.push(view::item_view::from_item(&item1.present(&player_stats)));
+    add_item_to_list(item, &player_stats, &mut items);
 
-    items.push(view::item_view::from_item(
-        &Item {
-            name: None,
-            item_base: String::from("Short Sword"),
-            rarity: ItemRarity::Magic,
-            item_class: ItemClass::Equipment(EquipmentType::Weapon(WeaponType::Sword)),
-            requirements: RequirementBlock {
-                requirements: vec![StatRequirement {
-                    stat_type: StatType::Strength,
-                    amount: 1000,
-                }],
-            },
-            base_stats: StatBlock {
-                stats: vec![
-                    Stat {
-                        stat_type: StatType::MinimumDamage,
-                        value: 3,
-                    },
-                    Stat {
-                        stat_type: StatType::MaximumDamage,
-                        value: 5,
-                    },
-                ],
-            },
-            modifiers: vec![
-                Box::new(BasicStatModifier {
-                    value: 5,
-                    stat: StatType::Dexterity,
-                    modifier_kind: ModifierKind::Flat,
-                    modifier_pass: ModifierPass::Flat,
-                    target: ModifierTargetKind::Item
-                }),
-                Box::new(BasicStatModifier {
-                    value: 2,
-                    stat: StatType::MinimumDamage,
-                    modifier_kind: ModifierKind::Flat,
-                    modifier_pass: ModifierPass::Flat,
-                    target: ModifierTargetKind::Item
-                }),
-                Box::new(BasicStatModifier {
-                    value: 10,
-                    stat: StatType::MaximumDamage,
-                    modifier_kind: ModifierKind::Flat,
-                    modifier_pass: ModifierPass::Flat,
-                    target: ModifierTargetKind::Item
-                }),
-                Box::new(FrontStatModifier {
-                    value: 50,
-                    front: StatType::IncreasedDamage,
-                    stats: vec![StatType::MinimumDamage, StatType::MaximumDamage],
-                    modifier_kind: ModifierKind::Percent,
-                    modifier_pass: ModifierPass::Increased,
-                    target: ModifierTargetKind::Item
-                }),
-                Box::new(RequirementModifier {
-                    value: -30,
-                }),
-            ],
-        }.present(&player_stats),
-    ));
+    let item = ItemBuilder::new()
+        .name(String::from("Excalibur"))
+        .base(String::from("Short Sword"))
+        .rarity(ItemRarity::Magic)
+        .class(ItemClass::Equipment(EquipmentType::Weapon(
+            WeaponType::Sword,
+        )))
+        .with_requirement(StatType::Strength, 1000)
+        .with_stat(StatType::MinimumDamage, 3)
+        .with_stat(StatType::MaximumDamage, 5)
+        .with_modifier(FlatStatModifier {
+            value: 5,
+            stat: StatType::Dexterity,
+            target: ModifierTargetKind::Item,
+        })
+        .with_modifier(FlatStatModifier {
+            value: 5,
+            stat: StatType::MinimumDamage,
+            target: ModifierTargetKind::Item,
+        })
+        .with_modifier(FlatStatModifier {
+            value: 10,
+            stat: StatType::MaximumDamage,
+            target: ModifierTargetKind::Item,
+        })
+        .with_modifier(FrontStatModifier {
+            value: 50,
+            front: StatType::IncreasedDamage,
+            stats: vec![StatType::MinimumDamage, StatType::MaximumDamage],
+            modifier_kind: ModifierKind::Percent,
+            modifier_pass: ModifierPass::Increased,
+            target: ModifierTargetKind::Item,
+        })
+        .with_modifier(RequirementModifier { value: -98 })
+        .build();
 
+    add_item_to_list(item, &player_stats, &mut items);
 
+    let item = ItemBuilder::new()
+        .base(String::from("Kris"))
+        .name(String::from("Death's Kiss"))
+        .rarity(ItemRarity::Rare)
+        .class(ItemClass::Equipment(EquipmentType::Weapon(WeaponType::Dagger)))
+        .with_requirement(StatType::Dexterity, 15)
+        .with_requirement(StatType::Intelligence, 10)
+        .with_stat(StatType::MinimumDamage, 1)
+        .with_stat(StatType::MaximumDamage, 4)
+        .with_modifier(BasicStatModifier {
+            value: 35,
+            stat: StatType::IncreasedAttackSpeed,
+            modifier_kind: ModifierKind::Percent,
+            modifier_pass: ModifierPass::Increased,
+            target: ModifierTargetKind::Item,
+        })
+        .build();
 
-    items.push(view::item_view::from_item(
-        &Item {
-            item_base: String::from("Kris"),
-            name: Some(String::from("Death's Kiss")),
-            rarity: ItemRarity::Rare,
-            item_class: ItemClass::Equipment(EquipmentType::Weapon(WeaponType::Dagger)),
-            requirements: RequirementBlock {
-                requirements: vec![
-                    StatRequirement {
-                        stat_type: StatType::Dexterity,
-                        amount: 15,
-                    },
-                    StatRequirement {
-                        stat_type: StatType::Intelligence,
-                        amount: 10,
-                    },
-                ],
-            },
-            base_stats: StatBlock {
-                stats: vec![
-                    Stat {
-                        stat_type: StatType::MinimumDamage,
-                        value: 1,
-                    },
-                    Stat {
-                        stat_type: StatType::MaximumDamage,
-                        value: 4,
-                    },
-                ],
-            },
-            modifiers: vec![],
-        }.present(&player_stats),
-    ));
+    add_item_to_list(item, &player_stats, &mut items);
 
-    items.push(view::item_view::from_item(
-        &Item {
-            item_base: String::from("Shako"),
-            name: Some(String::from("Harlequin's Crest")),
-            rarity: ItemRarity::Unique,
-            item_class: ItemClass::Equipment(EquipmentType::Armour(ArmourType::Helmet)),
-            requirements: RequirementBlock {
-                requirements: vec![StatRequirement {
-                    stat_type: StatType::Level,
-                    amount: 43,
-                }],
-            },
-            base_stats: StatBlock {
-                stats: vec![Stat {
-                    stat_type: StatType::Defense,
-                    value: 40,
-                }],
-            },
-            modifiers: vec![],
-        }.present(&player_stats),
-    ));
+    let item = ItemBuilder::new()
+        .base(String::from("Shako"))
+        .name(String::from("Harlequin's Crest"))
+        .rarity(ItemRarity::Unique)
+        .class(ItemClass::Equipment(EquipmentType::Armour(ArmourType::Helmet)))
+        .with_requirement(StatType::Level, 43)
+        .with_modifier(CompositeStatModifier {
+            stats: vec![ StatType::Strength, StatType::Dexterity, StatType::Intelligence],
+            modifier_kind: ModifierKind::Flat,
+            modifier_pass: ModifierPass::Flat,
+            values: vec![20, 20, 20],
+            target: ModifierTargetKind::Character,
+        })
+        .build();
+
+        add_item_to_list(item, &player_stats, &mut items);
 
     items.push(view::item_view::from_item(
         &Item {
@@ -202,12 +135,9 @@ fn main() {
                 }],
             },
             base_stats: StatBlock::default(),
-            modifiers: vec![
-                Box::new(RequirementModifier {
-                    value: -30,
-                }),
-            ],
-        }.present(&player_stats),
+            modifiers: vec![Box::new(RequirementModifier { value: -30 })],
+        }
+        .present(&player_stats),
     ));
 
     let ui = ConsoleUI::default();

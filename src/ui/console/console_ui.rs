@@ -1,8 +1,5 @@
 use crate::ui::console::decorator_builder::TextRendererBuilder;
-use crate::ui::console::text_decorator::{
-    BoldDecorator, ColorDecorator, ConsoleTextRenderer, HighlightDecorator, ItalicDecorator,
-    NewLineDecorator, TextRenderer, UnderlineDecorator,
-};
+use crate::ui::console::text_decorator::{ TextRenderer };
 use crate::ui::ui::UI;
 use crate::view::item_view::ItemView;
 
@@ -27,7 +24,10 @@ impl Default for ConsoleUI {
             item_class_type_text_renderer: TextRendererBuilder::new()
                 .with_italic()
                 .build(),
-            item_requirement_text_renderer: TextRendererBuilder::new().with_color().build(),
+            item_requirement_text_renderer: TextRendererBuilder::new()
+                .with_color()
+                .with_highlight_modifications()
+                .build(),
             item_normal_text_renderer: TextRendererBuilder::new().build(),
             item_modifiers_text_render: TextRendererBuilder::new()
                 .with_color()
