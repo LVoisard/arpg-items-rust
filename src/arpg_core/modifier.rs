@@ -87,7 +87,7 @@ impl Modifier for FlatStatModifier {
         };
 
         if let Some(stat) = stats.get_mut(self.stat) {
-            stat.value = (stat.value as f32 * (1.0 + (self.value as f32) / 100.0)) as i32
+            stat.value += self.value
         }
     }
 

@@ -9,7 +9,6 @@ pub trait TextRenderer {
 
 impl TextRenderer for Box<dyn TextRenderer> {
     fn render(&self, text: &TextView) {
-        // Delegate the call to the inner renderer
         self.as_ref().render(text);
     }
 }

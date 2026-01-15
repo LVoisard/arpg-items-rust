@@ -24,6 +24,7 @@ pub enum StatType {
     MinimumDamage,
     MaximumDamage,
     Defense,
+    Life,
 }
 
 impl Display for StatType {
@@ -39,6 +40,7 @@ impl Display for StatType {
             StatType::MaximumDamage => write!(f, "Maximum Damage"),
             StatType::Defense => write!(f, "Defence"),
             StatType::IncreasedAttackSpeed => write!(f, "Increased Attack Speed"),
+            StatType::Life => write!(f, "Life"),
         }
     }
 }

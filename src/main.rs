@@ -5,7 +5,6 @@ mod view;
 use crate::arpg_core::item::{ArmourType, EquipmentType, JewelleryType, WeaponType};
 use crate::arpg_core::item_builder::{ItemBuilder, ItemCreationError};
 use crate::arpg_core::modifier::{BasicStatModifier, CompositeStatModifier, FlatStatModifier, FrontStatModifier, ModifierKind, ModifierPass, ModifierTargetKind, RequirementModifier};
-use crate::arpg_core::requirement::{RequirementBlock, StatRequirement};
 use crate::arpg_core::stat::{Stat, StatBlock, StatType};
 use crate::view::item_view::ItemView;
 use arpg_core::item::{Item, ItemClass, ItemRarity};
@@ -18,7 +17,7 @@ fn add_item_to_list(
     items: &mut Vec<ItemView>,
 ) {
     match item {
-        Ok(item) => items.push(view::item_view::from_item(&item.present(stats))),
+        Ok(item) => items.push(ItemView::from(&item.present(stats))),
         Err(error) => println!("{}", error),
     }
 }
@@ -122,23 +121,16 @@ fn main() {
 
         add_item_to_list(item, &player_stats, &mut items);
 
-    items.push(view::item_view::from_item(
-        &Item {
-            item_base: String::from("Leather Belt"),
-            name: Some(String::from("Headhunter")),
-            rarity: ItemRarity::Unique,
-            item_class: ItemClass::Equipment(EquipmentType::Jewellery(JewelleryType::Belt)),
-            requirements: RequirementBlock {
-                requirements: vec![StatRequirement {
-                    stat_type: StatType::Level,
-                    amount: 65,
-                }],
-            },
-            base_stats: StatBlock::default(),
-            modifiers: vec![Box::new(RequirementModifier { value: -30 })],
-        }
-        .present(&player_stats),
-    ));
+    let item = ItemBuilder::new()
+        .name(String::from("Headhunter"))
+        .base(String::from("Leather Belt"))
+        .rarity(ItemRarity::Unique)
+        .with_requirement(StatType::Level, 68)
+        .with_modifier(RequirementModifier { value: -30 })
+        .with_stat(StatType::Life, 40)
+        .build();
+    
+    add_item_to_list(item, &player_stats, &mut items);
 
     let ui = ConsoleUI::default();
 
