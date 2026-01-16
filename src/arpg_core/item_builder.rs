@@ -4,6 +4,7 @@ use crate::arpg_core::modifier::Modifier;
 use crate::arpg_core::requirement::{RequirementBlock, StatRequirement};
 use crate::arpg_core::stat::{Stat, StatBlock, StatType};
 
+#[derive(Debug)]
 pub struct ItemCreationError(String);
 
 impl Display for ItemCreationError {

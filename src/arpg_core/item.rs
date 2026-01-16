@@ -45,6 +45,7 @@ impl Debug for Box<dyn Modifier> {
 
 
 impl Item {
+
     pub fn get_derived_stats(&self) -> StatBlock {
         let mut stats = self.base_stats.clone();
 
@@ -77,8 +78,8 @@ impl Item {
 
         let damage = match self.item_class {
             ItemClass::Equipment(EquipmentType::Weapon(_))
-            if derived.has(StatType::MinimumDamage)
-                && derived.has(StatType::MaximumDamage) =>
+            if derived.has(StatType::MinimumDamage) && self.base_stats.has(StatType::MinimumDamage)
+                && derived.has(StatType::MaximumDamage) && self.base_stats.has(StatType::MinimumDamage)=>
                 {
                     Some(DamageLine {
                         min: derived.get(StatType::MinimumDamage).unwrap().value,
@@ -129,7 +130,7 @@ pub enum ItemRarity {
     Unique,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ItemClass {
     Equipment(EquipmentType),
     None
@@ -144,7 +145,7 @@ impl Display for ItemClass {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum EquipmentType {
     Armour(ArmourType),
     Weapon(WeaponType),
@@ -161,7 +162,7 @@ impl Display for EquipmentType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum ArmourType {
     Helmet,
     BodyArmour,
@@ -182,7 +183,7 @@ impl Display for ArmourType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum WeaponType {
     Sword,
     Dagger,
@@ -199,7 +200,7 @@ impl Display for WeaponType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum JewelleryType {
     Belt,
     Ring,

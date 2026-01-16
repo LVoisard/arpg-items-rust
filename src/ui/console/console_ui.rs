@@ -2,6 +2,7 @@ use crate::ui::console::decorator_builder::TextRendererBuilder;
 use crate::ui::console::text_decorator::{ TextRenderer };
 use crate::ui::ui::UI;
 use crate::view::item_view::ItemView;
+use crate::view::stat_view::{PlayerView, StatsView};
 
 pub struct ConsoleUI {
     item_title_text_renderer: Box<dyn TextRenderer>,
@@ -65,5 +66,16 @@ impl UI for ConsoleUI {
         for line in item_view.description.iter() {
             self.item_modifiers_text_render.render(line);
         }
+    }
+
+    fn display_stats(&self, stats_view: &StatsView) {
+
+        for stat in stats_view.stats.iter() {
+            self.item_normal_text_renderer.render(stat);
+        }
+    }
+
+    fn display_player_view(&self, player_view: &PlayerView) {
+        self.display_stats(&player_view.stats)
     }
 }
