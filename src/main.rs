@@ -2,7 +2,7 @@ mod arpg_core;
 mod ui;
 mod view;
 
-use crate::arpg_core::item::{ArmourType, EquipmentType, JewelleryType, WeaponType};
+use crate::arpg_core::item::{ArmourType, EquipmentType, ItemPresentation, JewelleryType, WeaponType};
 use crate::arpg_core::item_builder::{ItemBuilder, ItemCreationError};
 use crate::arpg_core::modifier::{
     BasicStatModifier, CompositeStatModifier, FlatStatModifier, FrontStatModifier, ModifierKind,
@@ -10,19 +10,21 @@ use crate::arpg_core::modifier::{
 };
 use crate::arpg_core::player::Player;
 use crate::arpg_core::stat::{Stat, StatBlock, StatType};
+use crate::ui::ratatui::ratatui_app::Inventory;
 use crate::view::item_view::ItemView;
 use crate::view::stat_view::{PlayerView, StatsView};
 use arpg_core::item::{Item, ItemClass, ItemRarity};
 use ui::console::console_ui::ConsoleUI;
 use ui::ui::UI;
+use ui::ratatui::ratatui_app::RatatuiApp;
 
 fn add_item_to_list(
     item: Result<Item, ItemCreationError>,
     stats: &StatBlock,
-    items: &mut Vec<ItemView>,
+    items: &mut Vec<ItemPresentation>,
 ) {
     match item {
-        Ok(item) => items.push(ItemView::from(&item.present(stats))),
+        Ok(item) => items.push(item.present(stats)),
         Err(error) => println!("{}", error),
     }
 }
@@ -68,7 +70,7 @@ fn main() {
 
     player.equip(&equippable_item);
 
-    let mut items = Vec::<ItemView>::new();
+    let mut items = Vec::<ItemPresentation>::new();
 
     let item = ItemBuilder::new()
         .base(String::from("Hand Axe"))
@@ -177,11 +179,21 @@ fn main() {
     add_item_to_list(item, &player.base_stats, &mut items);
 
     let ui = ConsoleUI::default();
-
-    for item in items {
-        ui.display_item_view(&item);
+    
+    for item in items.iter() {
+        ui.display_item_view(&ItemView::from(item));
         println!();
     }
-
+    
     ui.display_player_view(&PlayerView::from(player));
+
+    let mut app = RatatuiApp{
+        exit: false,
+        inventory: Inventory {items},
+    };
+
+    let mut terminal = ratatui::init();
+    let _res = app.run(&mut terminal);
+
+    ratatui::restore();
 }
