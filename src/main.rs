@@ -2,6 +2,14 @@ mod arpg_core;
 mod ui;
 mod view;
 
+use std::io;
+use std::io::{stdout, IsTerminal};
+use std::process::Command;
+use crossterm::execute;
+use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen, SetSize};
+use ratatui::backend::CrosstermBackend;
+use ratatui::Terminal;
+use ratatui::widgets::ListState;
 use crate::arpg_core::item::{ArmourType, EquipmentType, ItemPresentation, JewelleryType, WeaponType};
 use crate::arpg_core::item_builder::{ItemBuilder, ItemCreationError};
 use crate::arpg_core::modifier::{
@@ -10,13 +18,13 @@ use crate::arpg_core::modifier::{
 };
 use crate::arpg_core::player::Player;
 use crate::arpg_core::stat::{Stat, StatBlock, StatType};
-use crate::ui::ratatui::ratatui_app::Inventory;
 use crate::view::item_view::ItemView;
 use crate::view::stat_view::{PlayerView, StatsView};
 use arpg_core::item::{Item, ItemClass, ItemRarity};
 use ui::console::console_ui::ConsoleUI;
 use ui::ui::UI;
 use ui::ratatui::ratatui_app::RatatuiApp;
+use crate::ui::ratatui::widgets::inventory_widget::Inventory;
 
 fn add_item_to_list(
     item: Result<Item, ItemCreationError>,
@@ -30,6 +38,11 @@ fn add_item_to_list(
 }
 
 fn main() {
+    if !std::io::stdout().is_terminal() {
+        spawn_terminal_and_exit();
+        return;
+    }
+
     let equippable_item =ItemBuilder::new()
         .base(String::from("Claymore"))
         .name(String::from("Big Long Sword"))
@@ -178,22 +191,72 @@ fn main() {
 
     add_item_to_list(item, &player.base_stats, &mut items);
 
-    let ui = ConsoleUI::default();
-    
-    for item in items.iter() {
-        ui.display_item_view(&ItemView::from(item));
-        println!();
-    }
-    
-    ui.display_player_view(&PlayerView::from(player));
+    // let ui = ConsoleUI::default();
+    //
+    // for item in items.iter() {
+    //     ui.display_item_view(&ItemView::from(item));
+    //     println!();
+    // }
+    //
+    // ui.display_player_view(&PlayerView::from(player));
 
     let mut app = RatatuiApp{
         exit: false,
-        inventory: Inventory {items},
+        inventory: Inventory {items, list_state: ListState::default()},
+        player_view: PlayerView::from(player),
     };
 
-    let mut terminal = ratatui::init();
-    let _res = app.run(&mut terminal);
+    let mut terminal = init_terminal();
+    if terminal.is_ok() {
+        let _res = app.run(&mut terminal.unwrap());
+        restore_terminal();
+    }
+}
 
-    ratatui::restore();
+fn spawn_terminal_and_exit() {
+    let exe = std::env::current_exe().unwrap();
+
+    let candidates = [
+        ("x-terminal-emulator", &["-e"]),
+        ("gnome-terminal", &["--"]),
+        ("konsole", &["-e"]),
+        ("xterm", &["-e"]),
+    ];
+
+    for (term, args) in candidates {
+        if Command::new(term)
+            .args(args)
+            .arg(&exe)
+            .spawn()
+            .is_ok()
+        {
+            return;
+        }
+    }
+
+    eprintln!("No terminal emulator found.");
+}
+
+fn init_terminal() -> io::Result<Terminal<CrosstermBackend<std::io::Stdout>>> {
+    enable_raw_mode()?;
+
+    let mut stdout = stdout();
+
+    execute!(
+        stdout,
+        EnterAlternateScreen,
+        SetSize(124, 24), // request size
+    )?;
+
+    let backend = CrosstermBackend::new(stdout);
+    Terminal::new(backend)
+}
+
+fn restore_terminal() -> io::Result<()> {
+    disable_raw_mode()?;
+    execute!(
+        stdout(),
+        LeaveAlternateScreen,
+    )?;
+    Ok(())
 }
