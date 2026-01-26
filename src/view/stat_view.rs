@@ -23,16 +23,24 @@ impl From<StatBlock> for StatsView {
     }
 }
 
+impl From<&StatBlock> for StatsView {
+    fn from(value: &StatBlock) -> Self {
+        Self {
+            stats: value.stats.iter().map(|s| TextView::from(*s)).collect()
+        }
+    }
+}
+
 pub struct PlayerView {
     pub stats: StatsView,
     pub equipped_items: Vec<TextView>,
 }
 
-impl From<Player<'_>> for PlayerView {
+impl From<Player> for PlayerView {
     fn from(value: Player) -> Self {
         Self {
             stats: StatsView::from(value.get_derived_stats()),
-            equipped_items: value.equipped_items.iter().map(|&x| TextView {
+            equipped_items: value.equippement.iter().map(|x| TextView {
                 value: x.name.clone().unwrap_or(x.item_base.clone()),
                 style: TextStyle::from_rarity(x.rarity),
             }).collect()

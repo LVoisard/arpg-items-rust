@@ -1,4 +1,6 @@
 use std::fmt::{Display, Formatter};
+use uuid::{Uuid, uuid};
+
 use crate::arpg_core::item::{Item, ItemClass, ItemRarity};
 use crate::arpg_core::modifier::Modifier;
 use crate::arpg_core::requirement::{RequirementBlock, StatRequirement};
@@ -85,6 +87,7 @@ impl ItemBuilder {
 
     pub fn build(self) -> Result<Item, ItemCreationError> {
         let item = Item {
+            id: Uuid::new_v4(),
             item_base: match self.item_base {
                 None => return Err(ItemCreationError(String::from("Item Base not specified"))),
                 Some(base) => base,

@@ -1,22 +1,22 @@
 use crossterm::event::{KeyCode, KeyEventKind};
 use ratatui::text::{Line, Span};
-use ratatui::{DefaultTerminal, Frame, backend};
+use ratatui::{DefaultTerminal, Frame};
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Alignment, Constraint, Layout, Rect};
+use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::prelude::Direction;
-use ratatui::style::{Color, Style, Stylize};
-use ratatui::widgets::{Block, BorderType, ListState, Paragraph, Widget};
+use ratatui::style::{Color, Stylize};
+use ratatui::widgets::{Block, BorderType, Paragraph, Widget};
 
 use crate::arpg_core::item::{ItemPresentation, ItemRarity};
-use crate::ui::ratatui::widgets::inventory_widget::{Inventory, PlayerInventoryWidget};
-use crate::ui::ratatui::widgets::player_stats_widget::PlayerStatsWidget;
-use crate::view::item_view::ItemView;
-use crate::view::stat_view::PlayerView;
+use crate::ui::ratatui::state::player::PlayerState;
+use crate::ui::ratatui::widgets::equipment::PlayerEquipmentWidget;
+use crate::ui::ratatui::widgets::inventory::{PlayerInventoryWidget};
+use crate::ui::ratatui::widgets::player_stats::PlayerStatsWidget;
+
 
 pub struct RatatuiApp {
     pub exit: bool,
-    pub player_view: PlayerView,
-    pub inventory: Inventory,
+    pub player_state: PlayerState,
 }
 
 
@@ -41,9 +41,9 @@ impl RatatuiApp {
             match key.code {
                 KeyCode::Esc => self.exit = true,
                 KeyCode::Down => {
-                    self.inventory.list_state.select_next()
+                    self.player_state.inventory_state.state.select_next()
                 }
-                KeyCode::Up => self.inventory.list_state.select_previous(),
+                KeyCode::Up => self.player_state.inventory_state.state.select_previous(),
                 _ => {}
             }
         }
@@ -71,21 +71,24 @@ impl RatatuiApp {
         let inventory_equipment_layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Percentage(50),
-                Constraint::Percentage(50),
+                Constraint::Fill(3),
+                Constraint::Min(7),
             ]).split(main_layout[2]);
 
 
         let player_stats = PlayerStatsWidget {
-            stats: &self.player_view.stats
+            stats: &self.player_state.base_stats
         };
         let b2 = Block::bordered().title(Line::from("World").centered());
 
-        let player_inventory = PlayerInventoryWidget {
-            items: &self.inventory,
+        let player_equipment =  PlayerEquipmentWidget {
+            equipment_state: &self.player_state.equippement_state,
         };
 
-        let player_equipment = Block::bordered().title(Line::from("Equipment").centered());
+        let player_inventory = PlayerInventoryWidget {
+            inventory_state: &self.player_state.inventory_state,
+        };
+
 
         let footer = Block::bordered().title(Line::from("Status").centered());
 
@@ -101,44 +104,6 @@ impl RatatuiApp {
     }
 }
 
-impl Widget for &RatatuiApp {
-    fn render(self, area: Rect, buf: &mut Buffer)
-    where
-        Self: Sized
-    {     
-
-        Paragraph::new("Inventory")
-            .alignment(Alignment::Center)
-            .dark_gray()
-            .bold()
-            .render(area, buf);
-
-        self.inventory.render(area, buf)
-        
-    }
-}
-
-impl Widget for &Inventory {
-    fn render(self, area: Rect, buf: &mut Buffer)
-    where
-        Self: Sized {
-
-
-        let (title_area, layout) = calculate_layout(area, self.items.iter().len() as u16);
-        let mut item_iter = self.items.iter();
-        for col in layout {
-            for row in col {
-                match item_iter.next() {
-                    Some(item) => {
-                        item.render(row, buf);
-                    }
-                    _ => {}
-                    
-                }
-            }
-        }
-    }
-}
 
 impl Widget for &ItemPresentation {
     fn render(self, area: Rect, buf: &mut Buffer)
@@ -203,28 +168,5 @@ impl Widget for &ItemPresentation {
         Paragraph::new(item_description)
             .block(block)    
             .render(area, buf);
-            
-
-        
-
     }
-}
-
-/// Calculate the layout of the UI elements.
-///
-/// Returns a tuple of the title area and the main areas.
-fn calculate_layout(area: Rect, n: u16) -> (Rect, Vec<Vec<Rect>>) {
-    let main_layout = Layout::vertical([Constraint::Length(1), Constraint::Min(0)]);
-    let block_layout = Layout::vertical([Constraint::Max(100); 2]);
-    let [title_area, main_area] = main_layout.areas(area);
-    let main_areas = block_layout
-        .split(main_area)
-        .iter()
-        .map(|&area| {
-            Layout::horizontal([Constraint::Percentage(33), Constraint::Percentage(34),Constraint::Percentage(33)])
-                .split(area)
-                .to_vec()
-        })
-        .collect();
-    (title_area, main_areas)
 }

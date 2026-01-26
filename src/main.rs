@@ -2,40 +2,26 @@ mod arpg_core;
 mod ui;
 mod view;
 
-use std::io;
-use std::io::{stdout, IsTerminal};
-use std::process::Command;
-use crossterm::execute;
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen, SetSize};
-use ratatui::backend::CrosstermBackend;
-use ratatui::Terminal;
-use ratatui::widgets::ListState;
-use crate::arpg_core::item::{ArmourType, EquipmentType, ItemPresentation, JewelleryType, WeaponType};
-use crate::arpg_core::item_builder::{ItemBuilder, ItemCreationError};
+use crate::arpg_core::inventory::Inventory;
+use crate::arpg_core::item::{ArmourType, EquipmentType, WeaponType};
 use crate::arpg_core::modifier::{
     BasicStatModifier, CompositeStatModifier, FlatStatModifier, FrontStatModifier, ModifierKind,
     ModifierPass, ModifierTargetKind, RequirementModifier,
 };
 use crate::arpg_core::player::Player;
 use crate::arpg_core::stat::{Stat, StatBlock, StatType};
-use crate::view::item_view::ItemView;
-use crate::view::stat_view::{PlayerView, StatsView};
+use crate::ui::ratatui::state::player::PlayerState;
 use arpg_core::item::{Item, ItemClass, ItemRarity};
-use ui::console::console_ui::ConsoleUI;
-use ui::ui::UI;
+use crossterm::execute;
+use crossterm::terminal::{
+    EnterAlternateScreen, LeaveAlternateScreen, SetSize, disable_raw_mode, enable_raw_mode,
+};
+use ratatui::Terminal;
+use ratatui::backend::CrosstermBackend;
+use std::io;
+use std::io::{IsTerminal, stdout};
+use std::process::Command;
 use ui::ratatui::ratatui_app::RatatuiApp;
-use crate::ui::ratatui::widgets::inventory_widget::Inventory;
-
-fn add_item_to_list(
-    item: Result<Item, ItemCreationError>,
-    stats: &StatBlock,
-    items: &mut Vec<ItemPresentation>,
-) {
-    match item {
-        Ok(item) => items.push(item.present(stats)),
-        Err(error) => println!("{}", error),
-    }
-}
 
 fn main() {
     if !std::io::stdout().is_terminal() {
@@ -43,16 +29,20 @@ fn main() {
         return;
     }
 
-    let equippable_item =ItemBuilder::new()
+    let equippable_item = Item::builder()
         .base(String::from("Claymore"))
         .name(String::from("Big Long Sword"))
         .rarity(ItemRarity::Rare)
         .with_stat(StatType::MinimumDamage, 9)
-        .with_stat( StatType::MaximumDamage, 17)
-        .with_modifier(FlatStatModifier{value: 5, stat: StatType::Dexterity, target: ModifierTargetKind::Character})
+        .with_stat(StatType::MaximumDamage, 17)
+        .with_modifier(FlatStatModifier {
+            value: 5,
+            stat: StatType::Dexterity,
+            target: ModifierTargetKind::Character,
+        })
         .with_modifier(FrontStatModifier {
             front: StatType::IncreasedDamage,
-            stats: vec![StatType::MinimumDamage,StatType::MaximumDamage],
+            stats: vec![StatType::MinimumDamage, StatType::MaximumDamage],
             modifier_kind: ModifierKind::Percent,
             modifier_pass: ModifierPass::Increased,
             value: 80,
@@ -61,13 +51,14 @@ fn main() {
         })
         .with_modifier(FrontStatModifier {
             front: StatType::IncreasedDamage,
-            stats: vec![StatType::MinimumDamage,StatType::MaximumDamage],
+            stats: vec![StatType::MinimumDamage, StatType::MaximumDamage],
             modifier_kind: ModifierKind::Percent,
             modifier_pass: ModifierPass::Increased,
             value: 10,
             target: ModifierTargetKind::Character,
         })
-        .build().unwrap();
+        .build()
+        .unwrap();
 
     let mut player = Player {
         base_stats: StatBlock {
@@ -78,14 +69,13 @@ fn main() {
                 Stat::new(StatType::Level, 10),
             ],
         },
-        equipped_items: vec![],
+        equippement: Inventory::new(),
+        inventory: Inventory::new(),
     };
 
-    player.equip(&equippable_item);
+    player.equip(equippable_item);
 
-    let mut items = Vec::<ItemPresentation>::new();
-
-    let item = ItemBuilder::new()
+    let item = Item::builder()
         .base(String::from("Hand Axe"))
         .rarity(ItemRarity::Normal)
         .class(ItemClass::Equipment(EquipmentType::Weapon(WeaponType::Axe)))
@@ -95,9 +85,10 @@ fn main() {
         .with_stat(StatType::MaximumDamage, 6)
         .build();
 
-    add_item_to_list(item, &player.base_stats, &mut items);
+    player.pickup(item.unwrap());
 
-    let item = ItemBuilder::new()
+
+    let item = Item::builder()
         .name(String::from("Excalibur"))
         .base(String::from("Short Sword"))
         .rarity(ItemRarity::Magic)
@@ -133,9 +124,9 @@ fn main() {
         .with_modifier(RequirementModifier { value: -98 })
         .build();
 
-    add_item_to_list(item, &player.base_stats, &mut items);
+    player.pickup(item.unwrap());
 
-    let item = ItemBuilder::new()
+    let item = Item::builder()
         .base(String::from("Kris"))
         .name(String::from("Death's Kiss"))
         .rarity(ItemRarity::Rare)
@@ -155,9 +146,9 @@ fn main() {
         })
         .build();
 
-    add_item_to_list(item, &player.base_stats, &mut items);
+    player.pickup(item.unwrap());
 
-    let item = ItemBuilder::new()
+    let item = Item::builder()
         .base(String::from("Shako"))
         .name(String::from("Harlequin's Crest"))
         .rarity(ItemRarity::Unique)
@@ -177,10 +168,10 @@ fn main() {
             target: ModifierTargetKind::Character,
         })
         .build();
+    player.pickup(item.unwrap());
 
-    add_item_to_list(item, &player.base_stats, &mut items);
 
-    let item = ItemBuilder::new()
+    let item = Item::builder()
         .name(String::from("Headhunter"))
         .base(String::from("Leather Belt"))
         .rarity(ItemRarity::Unique)
@@ -188,8 +179,7 @@ fn main() {
         .with_modifier(RequirementModifier { value: -30 })
         .with_stat(StatType::Life, 40)
         .build();
-
-    add_item_to_list(item, &player.base_stats, &mut items);
+    player.pickup(item.unwrap());
 
     // let ui = ConsoleUI::default();
     //
@@ -200,13 +190,12 @@ fn main() {
     //
     // ui.display_player_view(&PlayerView::from(player));
 
-    let mut app = RatatuiApp{
+    let mut app = RatatuiApp {
         exit: false,
-        inventory: Inventory {items, list_state: ListState::default()},
-        player_view: PlayerView::from(player),
+        player_state: PlayerState::from(player),
     };
 
-    let mut terminal = init_terminal();
+    let terminal = init_terminal();
     if terminal.is_ok() {
         let _res = app.run(&mut terminal.unwrap());
         restore_terminal();
@@ -224,12 +213,7 @@ fn spawn_terminal_and_exit() {
     ];
 
     for (term, args) in candidates {
-        if Command::new(term)
-            .args(args)
-            .arg(&exe)
-            .spawn()
-            .is_ok()
-        {
+        if Command::new(term).args(args).arg(&exe).spawn().is_ok() {
             return;
         }
     }
@@ -245,7 +229,7 @@ fn init_terminal() -> io::Result<Terminal<CrosstermBackend<std::io::Stdout>>> {
     execute!(
         stdout,
         EnterAlternateScreen,
-        SetSize(124, 24), // request size
+        SetSize(124, 30), // request size
     )?;
 
     let backend = CrosstermBackend::new(stdout);
@@ -254,9 +238,6 @@ fn init_terminal() -> io::Result<Terminal<CrosstermBackend<std::io::Stdout>>> {
 
 fn restore_terminal() -> io::Result<()> {
     disable_raw_mode()?;
-    execute!(
-        stdout(),
-        LeaveAlternateScreen,
-    )?;
+    execute!(stdout(), LeaveAlternateScreen,)?;
     Ok(())
 }

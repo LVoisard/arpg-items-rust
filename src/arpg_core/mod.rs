@@ -4,3 +4,6 @@ pub mod stat;
 pub mod requirement;
 pub mod item_builder;
 pub mod player;
+pub mod inventory;
+
+

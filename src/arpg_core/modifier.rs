@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::arpg_core::requirement::RequirementBlock;
 use crate::arpg_core::stat::{StatBlock, StatType};
 
@@ -6,6 +8,12 @@ pub trait Modifier {
     fn pass(&self) -> &ModifierPass;
     fn description(&self) -> String;
     fn get_affected_stat(&self) -> StatType;
+}
+
+impl Debug for Box<dyn Modifier> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Box").field(&self.as_ref().description()).finish()
+    }
 }
 
 pub enum ModifierKind {

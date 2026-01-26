@@ -1,3 +1,6 @@
+use uuid::Uuid;
+
+use crate::arpg_core::item_builder::ItemBuilder;
 use crate::arpg_core::modifier::{Modifier, ModifierPass, ModifierTarget};
 use crate::arpg_core::requirement::{RequirementBlock, StatRequirement};
 use crate::arpg_core::stat::{StatBlock, StatType};
@@ -5,6 +8,7 @@ use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Debug)]
 pub struct Item {
+    pub id: Uuid,
     pub item_base: String,
     pub name: Option<String>,
     pub rarity: ItemRarity,
@@ -12,6 +16,18 @@ pub struct Item {
     pub requirements: RequirementBlock,
     pub base_stats: StatBlock,
     pub modifiers: Vec<Box<dyn Modifier>>,
+}
+
+impl Item {
+    pub fn builder() -> ItemBuilder {
+        ItemBuilder::new()
+    }
+}
+
+impl PartialEq for Item {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
 }
 
 pub struct ItemPresentation {
@@ -36,13 +52,6 @@ pub struct RequirementLine {
     pub is_met: bool,
     pub is_modified: bool,
 }
-
-impl Debug for Box<dyn Modifier> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
-    }
-}
-
 
 impl Item {
 
@@ -145,7 +154,7 @@ impl Display for ItemClass {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum EquipmentType {
     Armour(ArmourType),
     Weapon(WeaponType),
@@ -162,7 +171,7 @@ impl Display for EquipmentType {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ArmourType {
     Helmet,
     BodyArmour,
@@ -170,6 +179,7 @@ pub enum ArmourType {
     Boots,
     Shield,
 }
+
 
 impl Display for ArmourType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -183,7 +193,7 @@ impl Display for ArmourType {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone, PartialEq, Eq, Hash)]
 pub enum WeaponType {
     Sword,
     Dagger,
@@ -200,7 +210,7 @@ impl Display for WeaponType {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum JewelleryType {
     Belt,
     Ring,

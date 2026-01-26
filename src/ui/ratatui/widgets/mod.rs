@@ -1,2 +1,3 @@
-pub mod player_stats_widget;
-pub mod inventory_widget;
+pub mod player_stats;
+pub mod inventory;
+pub mod equipment;

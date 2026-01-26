@@ -1,21 +1,18 @@
-use crate::arpg_core::item::{ItemPresentation, ItemRarity};
-use crate::view::item_view::ItemView;
-use crate::view::stat_view::StatsView;
+use crate::arpg_core::item::{ItemRarity};
+use crate::ui::ratatui::state::inventory::InventoryState;
+use crate::ui::ratatui::view_models::inventory::InventoryViewModel;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::prelude::Line;
 use ratatui::style::{Color, Stylize};
 use ratatui::text::Span;
 use ratatui::widgets::{Block, HighlightSpacing, List, ListItem, ListState, Paragraph, StatefulWidget, Widget};
-use std::fmt::format;
 
-pub struct Inventory {
-    pub items: Vec<ItemPresentation>,
-    pub list_state: ListState,
-}
+
+
 
 pub struct PlayerInventoryWidget<'a>{
-    pub items: &'a Inventory,
+    pub inventory_state: &'a InventoryState,
 }
 
 impl<'a> Widget for PlayerInventoryWidget<'a>{
@@ -23,15 +20,13 @@ impl<'a> Widget for PlayerInventoryWidget<'a>{
     where
         Self: Sized,
     {
-        let mut lines = Vec::<Line>::new();
 
         let items: Vec<ListItem> = self
-            .items
-            .items
+            .inventory_state
+            .inventory         
             .iter()
-            .enumerate()
-            .map(|(i, item)| {
-                let mut n: Span;
+            .map(|item| {
+                let n: Span;
                 if let Some(name) = &item.name {
                     n = Span::from(format!("{} ({})", name, item.item_base))
                 } else {
@@ -53,7 +48,7 @@ impl<'a> Widget for PlayerInventoryWidget<'a>{
             .highlight_symbol(">")
             .highlight_spacing(HighlightSpacing::WhenSelected);
         
-        let mut list_state = self.items.list_state;
+        let mut list_state = self.inventory_state.state;
 
         StatefulWidget::render(list, area, buf, &mut list_state)
     }
