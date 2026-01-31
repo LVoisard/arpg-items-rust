@@ -1,9 +1,9 @@
 use uuid::Uuid;
 
-use crate::arpg_core::item_builder::ItemBuilder;
-use crate::arpg_core::modifier::{Modifier, ModifierPass, ModifierTarget};
-use crate::arpg_core::requirement::{RequirementBlock, StatRequirement};
-use crate::arpg_core::stat::{StatBlock, StatType};
+use crate::model::item_builder::ItemBuilder;
+use crate::model::modifier::{Modifier, ModifierPass, ModifierTarget};
+use crate::model::requirement::{RequirementBlock};
+use crate::model::stat::{StatBlock};
 use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Debug)]
@@ -28,29 +28,6 @@ impl PartialEq for Item {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
-}
-
-pub struct ItemPresentation {
-    pub item_base: String,
-    pub name: Option<String>,
-    pub rarity: ItemRarity,
-
-    pub damage: Option<DamageLine>,
-    pub requirements: Vec<RequirementLine>,
-    pub item_class: String,
-    pub modifiers: Vec<String>,
-}
-
-pub struct DamageLine {
-    pub min: i32,
-    pub max: i32,
-    pub is_modified: bool,
-}
-
-pub struct RequirementLine {
-    pub requirement: StatRequirement,
-    pub is_met: bool,
-    pub is_modified: bool,
 }
 
 impl Item {
@@ -79,56 +56,7 @@ impl Item {
         }
 
         reqs
-    }
-
-    pub fn present(&self, player_stats: &StatBlock) -> ItemPresentation {
-        let derived = self.get_derived_stats();
-        let reqs = self.get_derived_requirements();
-
-        let damage = match self.item_class {
-            ItemClass::Equipment(EquipmentType::Weapon(_))
-            if derived.has(StatType::MinimumDamage) && self.base_stats.has(StatType::MinimumDamage)
-                && derived.has(StatType::MaximumDamage) && self.base_stats.has(StatType::MinimumDamage)=>
-                {
-                    Some(DamageLine {
-                        min: derived.get(StatType::MinimumDamage).unwrap().value,
-                        max: derived.get(StatType::MaximumDamage).unwrap().value,
-                        is_modified: self.modifiers.iter().any(|m|
-                            matches!(
-                            m.get_affected_stat(),
-                            StatType::IncreasedDamage
-                                | StatType::MinimumDamage
-                                | StatType::MaximumDamage
-                        )
-                        ),
-                    })
-                }
-            _ => None,
-        };
-
-        let requirements = reqs.requirements.into_iter().map(|r| {
-            let met = player_stats
-                .get(r.stat_type)
-                .map(|s| r.is_met(s))
-                .unwrap_or(false);
-
-            RequirementLine {
-                requirement: r,
-                is_met: met,
-                is_modified: self.modifiers.iter().any(|m| m.get_affected_stat() == StatType::Requirements)
-            }
-        }).collect();
-
-        ItemPresentation {
-            name: self.name.clone(),
-            item_base: self.item_base.clone(),
-            rarity: self.rarity,
-            item_class: self.item_class.to_string(),
-            damage,
-            requirements,
-            modifiers: self.modifiers.iter().map(|m| m.description()).collect(),
-        }
-    }
+    }    
 }
 
 #[derive(Debug, Copy,Clone)]

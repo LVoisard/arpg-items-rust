@@ -1,4 +1,4 @@
-use crate::{arpg_core::{player::Player, stat::StatBlock}, ui::ratatui::state::{equipment::EquipmentState, inventory::InventoryState}};
+use crate::{model::{player::Player, stat::StatBlock}, ui::ratatui::state::{equipment::EquipmentState, inventory::InventoryState}};
 
 pub struct PlayerState {
     pub base_stats: StatBlock,

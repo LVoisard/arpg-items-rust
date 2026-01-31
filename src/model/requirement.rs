@@ -1,4 +1,4 @@
-use crate::arpg_core::stat::{Stat, StatType};
+use crate::model::stat::{Stat, StatType};
 
 #[derive(Debug, Clone)]
 pub struct StatRequirement {

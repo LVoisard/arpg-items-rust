@@ -1,8 +1,7 @@
-use crate::arpg_core::inventory::Inventory;
-use crate::arpg_core::item::Item;
-use crate::arpg_core::modifier::ModifierPass;
-use crate::arpg_core::modifier::ModifierTarget::Character;
-use crate::arpg_core::stat::StatBlock;
+use crate::model::inventory::Inventory;
+use crate::model::item::Item;
+use crate::model::modifier::ModifierTarget::Character;
+use crate::model::stat::StatBlock;
 
 pub struct Player {
     pub base_stats: StatBlock,

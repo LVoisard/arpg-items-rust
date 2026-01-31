@@ -1,8 +1,5 @@
-use ratatui::widgets::ListState;
-
-use crate::arpg_core::item::ItemPresentation;
+use crate::ui::ratatui::view_models::item::ItemViewModel;
 
 pub struct InventoryViewModel {
-    pub items: Vec<ItemPresentation>,
-    pub list_state: ListState,
+    pub items: Vec<ItemViewModel>,
 }

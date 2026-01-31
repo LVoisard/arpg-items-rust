@@ -1,10 +1,10 @@
 use std::fmt::{Display, Formatter};
-use uuid::{Uuid, uuid};
+use uuid::{Uuid};
 
-use crate::arpg_core::item::{Item, ItemClass, ItemRarity};
-use crate::arpg_core::modifier::Modifier;
-use crate::arpg_core::requirement::{RequirementBlock, StatRequirement};
-use crate::arpg_core::stat::{Stat, StatBlock, StatType};
+use crate::model::item::{Item, ItemClass, ItemRarity};
+use crate::model::modifier::Modifier;
+use crate::model::requirement::{RequirementBlock, StatRequirement};
+use crate::model::stat::{Stat, StatBlock, StatType};
 
 #[derive(Debug)]
 pub struct ItemCreationError(String);

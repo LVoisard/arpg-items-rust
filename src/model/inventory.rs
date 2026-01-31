@@ -1,6 +1,4 @@
-use std::path::Iter;
-
-use crate::arpg_core::item::Item;
+use crate::model::item::Item;
 
 pub struct Inventory {
     pub(super) items: Vec<Item>
@@ -17,7 +15,7 @@ impl Inventory {
         self.items.push(item);
     }
     
-    pub fn iter(&self) -> core::slice::Iter<Item>{
+    pub fn iter(&'_ self) -> core::slice::Iter<'_, Item>{
         self.items.iter()
     }
 }

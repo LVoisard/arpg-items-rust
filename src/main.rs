@@ -1,17 +1,17 @@
-mod arpg_core;
+mod model;
 mod ui;
-mod view;
+mod input;
 
-use crate::arpg_core::inventory::Inventory;
-use crate::arpg_core::item::{ArmourType, EquipmentType, WeaponType};
-use crate::arpg_core::modifier::{
+use crate::model::inventory::Inventory;
+use crate::model::item::{ArmourType, EquipmentType, WeaponType};
+use crate::model::modifier::{
     BasicStatModifier, CompositeStatModifier, FlatStatModifier, FrontStatModifier, ModifierKind,
     ModifierPass, ModifierTargetKind, RequirementModifier,
 };
-use crate::arpg_core::player::Player;
-use crate::arpg_core::stat::{Stat, StatBlock, StatType};
+use crate::model::player::Player;
+use crate::model::stat::{Stat, StatBlock, StatType};
 use crate::ui::ratatui::state::player::PlayerState;
-use arpg_core::item::{Item, ItemClass, ItemRarity};
+use model::item::{Item, ItemClass, ItemRarity};
 use crossterm::execute;
 use crossterm::terminal::{
     EnterAlternateScreen, LeaveAlternateScreen, SetSize, disable_raw_mode, enable_raw_mode,
@@ -190,10 +190,7 @@ fn main() {
     //
     // ui.display_player_view(&PlayerView::from(player));
 
-    let mut app = RatatuiApp {
-        exit: false,
-        player_state: PlayerState::from(player),
-    };
+    let mut app = RatatuiApp::new(PlayerState::from(player));
 
     let terminal = init_terminal();
     if terminal.is_ok() {

@@ -1,13 +1,15 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     text::Line,
-    widgets::{Block, Paragraph, Widget, canvas::Label},
+    widgets::{Block, Paragraph, Widget},
 };
-
-use crate::{arpg_core::item::{ArmourType, EquipmentType, JewelleryType}, ui::ratatui::state::equipment::{EquipmentSlot, EquipmentState}};
+use ratatui::prelude::{Color, Style};
+use ratatui::widgets::BorderType;
+use crate::ui::ratatui::state::equipment::{EquipmentSlot, EquipmentState};
 
 pub struct PlayerEquipmentWidget<'a> {
     pub equipment_state: &'a EquipmentState,
+    pub focused: bool,
 }
 
 impl<'a> Widget for PlayerEquipmentWidget<'a> {
@@ -15,7 +17,7 @@ impl<'a> Widget for PlayerEquipmentWidget<'a> {
     where
         Self: Sized,
     {
-        let main_block = Block::bordered().title(Line::from("Equipment").centered());
+        let mut main_block = Block::bordered().title(Line::from("Equipment").centered());
 
         let layout = Layout::default()
             .direction(Direction::Vertical)
@@ -67,43 +69,9 @@ impl<'a> Widget for PlayerEquipmentWidget<'a> {
             Paragraph::new(vec![slot_name, slot_contained]).render(item_block, buf);
         }
 
-
-        // let slot_name = Line::from("Amulet").centered();
-        // let item_name = match &self.equipment_state.amulet_slot {
-        //     Some(x) => match &x.name {
-        //         Some(name) => name,
-        //         None => &x.item_base,
-        //     },
-        //     None => "- empty -",
-        // };
-        // let slot_contained = Line::from("[ - empty - ]").centered();
-
-        // Paragraph::new(vec![slot_name, slot_contained]).render(trinket_layout[0], buf);
-
-        // let slot_name = Line::from("Ring").centered();
-        // let slot_contained = Line::from("- empty -").centered();
-
-        // Paragraph::new(vec![slot_name, slot_contained]).render(trinket_layout[1], buf);
-
-        // let slot_name = Line::from("Armour").centered();
-        // let slot_contained = Line::from("- empty -").centered();
-
-        // Paragraph::new(vec![slot_name, slot_contained]).render(layout[2], buf);
-
-        // let slot_name = Line::from("Belt").centered();
-        // let slot_contained = Line::from("- empty -").centered();
-
-        // Paragraph::new(vec![slot_name, slot_contained]).render(layout[3], buf);
-
-        // let slot_name = Line::from("Gloves").centered();
-        // let slot_contained = Line::from("- empty -").centered();
-
-        // Paragraph::new(vec![slot_name, slot_contained]).render(gloves_boots[0], buf);
-
-        // let slot_name = Line::from("Boots").centered();
-        // let slot_contained = Line::from("- empty -").centered();
-
-        // Paragraph::new(vec![slot_name, slot_contained]).render(gloves_boots[1], buf);
+        if self.focused {
+            main_block = main_block.border_style(Style::default().fg(Color::Cyan)).border_type(BorderType::Double);
+        }
 
         main_block.render(area, buf);
     }

@@ -1,18 +1,15 @@
-use crate::arpg_core::item::{ItemRarity};
+use crate::model::item::{ItemRarity};
 use crate::ui::ratatui::state::inventory::InventoryState;
-use crate::ui::ratatui::view_models::inventory::InventoryViewModel;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use ratatui::prelude::Line;
+use ratatui::prelude::{Line, Style};
 use ratatui::style::{Color, Stylize};
 use ratatui::text::Span;
-use ratatui::widgets::{Block, HighlightSpacing, List, ListItem, ListState, Paragraph, StatefulWidget, Widget};
-
-
-
+use ratatui::widgets::{Block, BorderType, HighlightSpacing, List, ListItem, StatefulWidget, Widget};
 
 pub struct PlayerInventoryWidget<'a>{
     pub inventory_state: &'a InventoryState,
+    pub focused: bool,
 }
 
 impl<'a> Widget for PlayerInventoryWidget<'a>{
@@ -43,8 +40,14 @@ impl<'a> Widget for PlayerInventoryWidget<'a>{
             })
             .collect();
 
+        let mut block = Block::bordered().title(Line::from("Inventory").centered());
+
+        if self.focused {
+            block = block.border_style(Style::default().fg(Color::Cyan)).border_type(BorderType::Double);
+        }
+
         let list = List::new(items)
-            .block(Block::bordered().title(Line::from("Inventory").centered()))
+            .block(block)
             .highlight_symbol(">")
             .highlight_spacing(HighlightSpacing::WhenSelected);
         

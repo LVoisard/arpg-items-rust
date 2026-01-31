@@ -1,8 +1,7 @@
 use std::{collections::HashMap, fmt::Display};
-
-use ratatui::widgets::ListState;
-
-use crate::arpg_core::item::Item;
+use crossterm::event::KeyEvent;
+use crate::input::input_handler::InputHandler;
+use crate::model::item::Item;
 
 
 pub struct EquipmentState {
@@ -50,5 +49,11 @@ impl Display for EquipmentSlot {
             EquipmentSlot::Gloves => write!(f, "Gloves"),
             EquipmentSlot::Boots => write!(f, "Boots"),
         }
+    }
+}
+
+impl InputHandler for EquipmentState {
+    fn handle_key_event(&mut self, key: KeyEvent) {
+        todo!()
     }
 }

@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
-use crate::arpg_core::requirement::RequirementBlock;
-use crate::arpg_core::stat::{StatBlock, StatType};
+use crate::model::requirement::RequirementBlock;
+use crate::model::stat::{StatBlock, StatType};
 
 pub trait Modifier {
     fn apply_to(&self, target: ModifierTarget);
