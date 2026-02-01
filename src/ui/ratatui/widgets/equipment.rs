@@ -3,13 +3,20 @@ use ratatui::{
     text::Line,
     widgets::{Block, Paragraph, Widget},
 };
-use ratatui::prelude::{Color, Style};
-use ratatui::widgets::BorderType;
+use ratatui::prelude::{Color, Span, Style};
+use ratatui::widgets::{BorderType};
 use crate::ui::ratatui::state::equipment::{EquipmentSlot, EquipmentState};
 
 pub struct PlayerEquipmentWidget<'a> {
-    pub equipment_state: &'a EquipmentState,
-    pub focused: bool,
+    equipment_state: &'a EquipmentState,
+}
+
+impl<'a> PlayerEquipmentWidget<'a> {
+    pub fn new(equipment_state: &'a EquipmentState) -> Self {
+        Self {
+            equipment_state
+        }
+    }
 }
 
 impl<'a> Widget for PlayerEquipmentWidget<'a> {
@@ -17,6 +24,7 @@ impl<'a> Widget for PlayerEquipmentWidget<'a> {
     where
         Self: Sized,
     {
+
         let mut main_block = Block::bordered().title(Line::from("Equipment").centered());
 
         let layout = Layout::default()
@@ -46,7 +54,14 @@ impl<'a> Widget for PlayerEquipmentWidget<'a> {
             .split(layout[4]);
 
         for (slot, item) in &self.equipment_state.equipment {
-            let slot_name = Line::from(slot.to_string()).centered();
+            let mut slot_label = vec![Span::from(slot.to_string())];
+            if let Some(selected_slot) = &self.equipment_state.selected
+                && slot == selected_slot {
+                slot_label.insert(0, Span::from("> "));
+                slot_label.push(Span::from(" <"));
+            }
+            let slot_name = Line::from(slot_label).centered();
+
             let item_name = match item {
                 Some(x) => match &x.name {
                     Some(name) => name,
@@ -69,7 +84,7 @@ impl<'a> Widget for PlayerEquipmentWidget<'a> {
             Paragraph::new(vec![slot_name, slot_contained]).render(item_block, buf);
         }
 
-        if self.focused {
+        if self.equipment_state.ui_state.focused {
             main_block = main_block.border_style(Style::default().fg(Color::Cyan)).border_type(BorderType::Double);
         }
 

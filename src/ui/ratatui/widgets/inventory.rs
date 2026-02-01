@@ -6,10 +6,18 @@ use ratatui::prelude::{Line, Style};
 use ratatui::style::{Color, Stylize};
 use ratatui::text::Span;
 use ratatui::widgets::{Block, BorderType, HighlightSpacing, List, ListItem, StatefulWidget, Widget};
+use crate::ui::ratatui::state::ui::UIState;
 
 pub struct PlayerInventoryWidget<'a>{
     pub inventory_state: &'a InventoryState,
-    pub focused: bool,
+}
+
+impl<'a> PlayerInventoryWidget<'a> {
+    pub fn new(inventory_state: &'a InventoryState) -> Self {
+        Self {
+            inventory_state
+        }
+    }
 }
 
 impl<'a> Widget for PlayerInventoryWidget<'a>{
@@ -42,7 +50,7 @@ impl<'a> Widget for PlayerInventoryWidget<'a>{
 
         let mut block = Block::bordered().title(Line::from("Inventory").centered());
 
-        if self.focused {
+        if self.inventory_state.ui_state.focused {
             block = block.border_style(Style::default().fg(Color::Cyan)).border_type(BorderType::Double);
         }
 

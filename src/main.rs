@@ -23,10 +23,10 @@ use std::io::{IsTerminal, stdout};
 use std::process::Command;
 use ui::ratatui::ratatui_app::RatatuiApp;
 
-fn main() {
+fn main() -> Result<(), std::io::Error> {
     if !std::io::stdout().is_terminal() {
         spawn_terminal_and_exit();
-        return;
+        return Ok(())
     }
 
     let equippable_item = Item::builder()
@@ -192,11 +192,9 @@ fn main() {
 
     let mut app = RatatuiApp::new(PlayerState::from(player));
 
-    let terminal = init_terminal();
-    if terminal.is_ok() {
-        let _res = app.run(&mut terminal.unwrap());
-        restore_terminal();
-    }
+    let mut terminal = init_terminal()?;    
+    app.run(&mut terminal)?;
+    restore_terminal()
 }
 
 fn spawn_terminal_and_exit() {

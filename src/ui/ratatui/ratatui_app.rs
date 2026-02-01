@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use crate::input::input_handler::InputHandler;
 use crate::model::item::ItemRarity;
 use crate::ui::ratatui::state::player::PlayerState;
@@ -14,11 +15,16 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Paragraph, Widget};
 use ratatui::{DefaultTerminal, Frame};
 use strum::{Display, EnumIter, IntoEnumIterator};
+use crate::ui::focusable::Focusable;
+use crate::ui::ratatui::state::world::WorldState;
+use crate::ui::ratatui::widgets::world::WorldWidget;
 
 pub struct RatatuiApp {
     exit: bool,
     player_state: PlayerState,
+    world_state: WorldState,
     focus: Screen,
+    input: Option<Arc<dyn InputHandler>>
 }
 
 #[derive(PartialEq, EnumIter, Display)]
@@ -29,15 +35,18 @@ enum Screen {
     Inventory,
 }
 
-impl RatatuiApp {
+impl RatatuiApp{
     pub fn new(player_state: PlayerState) -> Self {
         Self {
             exit: false,
             player_state,
+            world_state: WorldState::new(),
             focus: Screen::Stats,
+            input: None,
         }
     }
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> std::io::Result<()> {
+        self.change_screen(Screen::Stats);
         while !self.should_exit() {
             terminal.draw(|frame| self.render(frame))?;
             match crossterm::event::read()? {
@@ -72,33 +81,53 @@ impl RatatuiApp {
             .constraints([Constraint::Fill(3), Constraint::Min(7)])
             .split(main_layout[2]);
 
-        let player_stats = PlayerStatsWidget {
-            stats: &self.player_state.base_stats,
-            focused: self.focus == Screen::Stats,
-        };
+        let player_stats = PlayerStatsWidget::new(&self.player_state.stats_state);
 
-        let b2 = Block::bordered().title(Line::from("World").centered());
+        let world = WorldWidget::new(&self.world_state);
 
-        let player_equipment = PlayerEquipmentWidget {
-            equipment_state: &self.player_state.equippement_state,
-            focused: self.focus == Screen::Equipment,
-        };
+        let player_equipment = PlayerEquipmentWidget::new(&self.player_state.equipment_state);
 
-        let player_inventory = PlayerInventoryWidget {
-            inventory_state: &self.player_state.inventory_state,
-            focused: self.focus == Screen::Inventory,
-        };
+        let player_inventory = PlayerInventoryWidget::new(&self.player_state.inventory_state);
 
         let footer = Block::bordered().title(Line::from("Status").centered());
 
         frame.render_widget(player_stats, main_layout[0]);
-        frame.render_widget(b2, main_layout[1]);
+        frame.render_widget(world, main_layout[1]);
         frame.render_widget(player_equipment, inventory_equipment_layout[0]);
         frame.render_widget(player_inventory, inventory_equipment_layout[1]);
 
         frame.render_widget(footer, root_layout[1]);
 
         //frame.render_widget(self, frame.area());
+    }
+
+    fn forward_input(&mut self, key: KeyEvent) {
+        match self.focus {
+            Screen::Stats => {}
+            Screen::World => {}
+            Screen::Equipment => self.player_state.equipment_state.handle_key_event(key),
+            Screen::Inventory => self.player_state.inventory_state.handle_key_event(key),
+        }
+    }
+
+    fn change_screen(&mut self, new_screen: Screen) {
+        match self.focus {
+            Screen::Stats => {
+                self.player_state.stats_state.on_focus_lost();
+            },
+            Screen::World => self.world_state.on_focus_lost(),
+            Screen::Equipment => {
+                self.player_state.equipment_state.on_focus_lost();
+            },
+            Screen::Inventory => self.player_state.inventory_state.on_focus_lost(),
+        }
+        self.focus = new_screen;
+        match self.focus {
+            Screen::Stats => self.player_state.stats_state.on_focus_gained(),
+            Screen::World => self.world_state.on_focus_gained(),
+            Screen::Equipment => self.player_state.equipment_state.on_focus_gained(),
+            Screen::Inventory => self.player_state.inventory_state.on_focus_gained(),
+        }
     }
 }
 
@@ -107,25 +136,22 @@ impl InputHandler for RatatuiApp {
         if key.kind == KeyEventKind::Press {
             match key.code {
                 KeyCode::Esc => self.exit = true,
-                KeyCode::Char('s') => self.focus = Screen::Stats,
-                KeyCode::Char('w') => self.focus = Screen::World,
-                KeyCode::Char('i') => self.focus = Screen::Inventory,
-                KeyCode::Char('e') => self.focus = Screen::Equipment,
+                KeyCode::Char('s') => self.change_screen(Screen::Stats),
+                KeyCode::Char('w') => self.change_screen(Screen::World),
+                KeyCode::Char('i') => self.change_screen(Screen::Inventory),
+                KeyCode::Char('e') => self.change_screen(Screen::Equipment),
                 KeyCode::Tab => {
                     let mut iter = Screen::iter();
-                    while let item = iter.next() {
+                    loop {
+                        let item = iter.next();
                         if let Some(i) = item && i == self.focus {
-                            self.focus = iter.next().unwrap_or_else(|| Screen::Stats);
+                            let new_screen = iter.next().unwrap_or_else(|| Screen::Stats);
+                            self.change_screen(new_screen);
                             break;
                         }
                     }
                 }
-                _ => match self.focus {
-                    Screen::Stats => {}
-                    Screen::World => {}
-                    Screen::Inventory => self.player_state.inventory_state.handle_key_event(key),
-                    Screen::Equipment => self.player_state.equippement_state.handle_key_event(key),
-                },
+                _ => self.forward_input(key)
             }
         }
     }

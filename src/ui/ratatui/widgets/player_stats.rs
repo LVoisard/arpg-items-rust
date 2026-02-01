@@ -4,13 +4,23 @@ use ratatui::style::{Color, Style};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, BorderType, Paragraph, Widget};
 use crate::model::stat::StatBlock;
+use crate::ui::ratatui::state::inventory::InventoryState;
+use crate::ui::ratatui::state::stats::StatState;
+use crate::ui::ratatui::state::ui::UIState;
 use crate::ui::ratatui::view_models::stat_block::StatBlockViewModel;
+use crate::ui::ratatui::widgets::inventory::PlayerInventoryWidget;
 
 pub struct PlayerStatsWidget<'a> {
-    pub stats: &'a StatBlock,
-    pub focused: bool,
+    pub stats: &'a StatState,
 }
 
+impl<'a> PlayerStatsWidget<'a> {
+    pub fn new(stats: &'a StatState) -> Self {
+        Self {
+            stats,
+        }
+    }
+}
 
 impl<'a> Widget for PlayerStatsWidget<'a> {
     fn render(self, area: Rect, buf: &mut Buffer)
@@ -25,8 +35,8 @@ impl<'a> Widget for PlayerStatsWidget<'a> {
 
         let mut block = Block::bordered().title(Line::from("Stats").centered());
 
-        if self.focused {
-            block = block.border_style(Style::default().fg(Color::Cyan)).border_type(BorderType::Double);
+        if self.stats.ui_state.focused {
+            block = block.border_type(BorderType::Double).border_style(Style::default().fg(Color::Cyan))
         }
 
         Paragraph::new(lines)

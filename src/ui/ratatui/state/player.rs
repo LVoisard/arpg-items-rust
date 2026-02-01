@@ -1,17 +1,18 @@
 use crate::{model::{player::Player, stat::StatBlock}, ui::ratatui::state::{equipment::EquipmentState, inventory::InventoryState}};
+use crate::ui::ratatui::state::stats::StatState;
 
 pub struct PlayerState {
-    pub base_stats: StatBlock,
+    pub stats_state: StatState,
     pub inventory_state: InventoryState,
-    pub equippement_state: EquipmentState,
+    pub equipment_state: EquipmentState,
 }
 
 impl PlayerState {
-    pub fn new(player: Player) -> Self {
+    fn new(player: Player) -> Self {
         Self {
-            base_stats: player.base_stats,
+            stats_state: StatState::from(player.base_stats),
             inventory_state: InventoryState::new(player.inventory),
-            equippement_state: EquipmentState::new(),
+            equipment_state: EquipmentState::new(),
         }
     }
 }

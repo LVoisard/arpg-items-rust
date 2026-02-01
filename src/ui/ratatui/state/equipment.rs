@@ -1,11 +1,15 @@
-use std::{collections::HashMap, fmt::Display};
-use crossterm::event::KeyEvent;
 use crate::input::input_handler::InputHandler;
 use crate::model::item::Item;
-
+use crossterm::event::{KeyCode, KeyEvent};
+use std::{collections::HashMap, fmt::Display};
+use strum::{EnumIter, IntoEnumIterator};
+use crate::ui::focusable::Focusable;
+use crate::ui::ratatui::state::ui::UIState;
 
 pub struct EquipmentState {
-    pub equipment: HashMap<EquipmentSlot, Option<Item>>
+    pub equipment: HashMap<EquipmentSlot, Option<Item>>,
+    pub selected: Option<EquipmentSlot>,
+    pub ui_state: UIState,
 }
 
 impl EquipmentState {
@@ -21,15 +25,19 @@ impl EquipmentState {
                 (EquipmentSlot::Gloves, None),
                 (EquipmentSlot::Boots, None),
             ]),
+            selected: None,
+            ui_state: UIState {
+                focused: false
+            }
         }
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Hash)]
+#[derive(Debug, Eq, PartialEq, Hash, EnumIter)]
 pub enum EquipmentSlot {
     Helmet,
-    Amulet,
     Ring,
+    Amulet,
     Weapon,
     Armour,
     Belt,
@@ -52,8 +60,63 @@ impl Display for EquipmentSlot {
     }
 }
 
-impl InputHandler for EquipmentState {
-    fn handle_key_event(&mut self, key: KeyEvent) {
-        todo!()
+impl EquipmentState {
+    fn select_next_equipment_slot(&mut self) {
+        if let Some(slot) = &self.selected {
+            let mut index = EquipmentSlot::iter().position(|s| s == *slot).unwrap();
+            let index = if index == EquipmentSlot::iter().len() - 1 {
+                0
+            } else {
+                index + 1
+            };
+            self.selected = Some(EquipmentSlot::iter().nth(index).unwrap())
+        }
+    }
+
+    fn select_previous_equipment_slot(&mut self) {
+        if let Some(slot) = &self.selected {
+            let mut index = EquipmentSlot::iter().position(|s| s == *slot).unwrap();
+            let index = if index == 0 {
+                EquipmentSlot::iter().len() - 1
+            } else {
+                index - 1
+            };
+            self.selected = Some(EquipmentSlot::iter().nth(index).unwrap())
+        }
+    }
+
+    fn select_if_none(&mut self) -> bool {
+        if self.selected.is_none() {
+            self.selected = Some(EquipmentSlot::Helmet);
+            return true;
+        }
+        false
+    }
+
+    fn remove_selection(&mut self) {
+        self.selected = None;
     }
 }
+
+impl InputHandler for EquipmentState {
+    fn handle_key_event(&mut self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Up => self.select_previous_equipment_slot(),
+            KeyCode::Down => self.select_next_equipment_slot(),
+            _ => {}
+        }
+    }
+}
+
+impl Focusable for EquipmentState {
+    fn on_focus_gained(&mut self) {
+        self.ui_state.focused = true;
+        self.select_if_none();
+    }
+
+    fn on_focus_lost(&mut self) {
+        self.ui_state.focused = false;
+        self.remove_selection();
+    }
+}
+
