@@ -1,31 +1,27 @@
-use std::sync::Arc;
+use std::cell::RefCell;
 use crate::input::input_handler::InputHandler;
 use crate::model::item::ItemRarity;
+use crate::ui::focusable::Focusable;
+use crate::ui::ratatui::observer::{Observer, Publisher, UIEvent};
 use crate::ui::ratatui::state::player::PlayerState;
+use crate::ui::ratatui::state::world::WorldState;
 use crate::ui::ratatui::view_models::item::ItemViewModel;
 use crate::ui::ratatui::widgets::equipment::PlayerEquipmentWidget;
 use crate::ui::ratatui::widgets::inventory::PlayerInventoryWidget;
 use crate::ui::ratatui::widgets::player_stats::PlayerStatsWidget;
+use crate::ui::ratatui::widgets::world::WorldWidget;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Layout, Rect};
+use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::prelude::Direction;
 use ratatui::style::{Color, Stylize};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, BorderType, Paragraph, Widget};
+use ratatui::widgets::{Block, BorderType, Clear, Paragraph, Widget};
 use ratatui::{DefaultTerminal, Frame};
+use std::collections::HashMap;
+use std::rc::Rc;
+use std::sync::Arc;
 use strum::{Display, EnumIter, IntoEnumIterator};
-use crate::ui::focusable::Focusable;
-use crate::ui::ratatui::state::world::WorldState;
-use crate::ui::ratatui::widgets::world::WorldWidget;
-
-pub struct RatatuiApp {
-    exit: bool,
-    player_state: PlayerState,
-    world_state: WorldState,
-    focus: Screen,
-    input: Option<Arc<dyn InputHandler>>
-}
 
 #[derive(PartialEq, EnumIter, Display)]
 enum Screen {
@@ -35,14 +31,30 @@ enum Screen {
     Inventory,
 }
 
-impl RatatuiApp{
+enum Popup {
+    Item(usize),
+}
+
+pub struct RatatuiApp {
+    exit: bool,
+    player_state: PlayerState,
+    world_state: WorldState,
+    focus: Screen,
+    popup: Option<Popup>,
+}
+
+struct AppObserver {
+    app: Rc<RefCell<RatatuiApp>>
+}
+
+impl RatatuiApp {
     pub fn new(player_state: PlayerState) -> Self {
         Self {
             exit: false,
             player_state,
             world_state: WorldState::new(),
             focus: Screen::Stats,
-            input: None,
+            popup: None,
         }
     }
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> std::io::Result<()> {
@@ -95,10 +107,20 @@ impl RatatuiApp{
         frame.render_widget(world, main_layout[1]);
         frame.render_widget(player_equipment, inventory_equipment_layout[0]);
         frame.render_widget(player_inventory, inventory_equipment_layout[1]);
-
         frame.render_widget(footer, root_layout[1]);
 
-        //frame.render_widget(self, frame.area());
+        if let Some(popup) = &self.popup {
+            match popup {
+                Popup::Item(index) => {
+                    let item = self.player_state.inventory_state.inventory.iter().nth(*index).unwrap();
+                    let block = Block::bordered().title(item.item_base.clone());
+                    let area = popup_area(frame.area(), 60, 20);
+                    frame.render_widget(Clear, area); //this clears out the background
+                    frame.render_widget(block, area);
+                }
+            }
+        }
+
     }
 
     fn forward_input(&mut self, key: KeyEvent) {
@@ -111,24 +133,31 @@ impl RatatuiApp{
     }
 
     fn change_screen(&mut self, new_screen: Screen) {
-        match self.focus {
-            Screen::Stats => {
-                self.player_state.stats_state.on_focus_lost();
-            },
-            Screen::World => self.world_state.on_focus_lost(),
-            Screen::Equipment => {
-                self.player_state.equipment_state.on_focus_lost();
-            },
-            Screen::Inventory => self.player_state.inventory_state.on_focus_lost(),
-        }
+        self.get_current_focusable().on_focus_lost();
         self.focus = new_screen;
+        self.get_current_focusable().on_focus_gained();
+    }
+
+    fn get_current_focusable(&mut self) -> Box<&mut dyn Focusable> {
         match self.focus {
-            Screen::Stats => self.player_state.stats_state.on_focus_gained(),
-            Screen::World => self.world_state.on_focus_gained(),
-            Screen::Equipment => self.player_state.equipment_state.on_focus_gained(),
-            Screen::Inventory => self.player_state.inventory_state.on_focus_gained(),
+            Screen::Stats => Box::new(&mut self.player_state.stats_state),
+            Screen::World => Box::new(&mut self.world_state),
+            Screen::Equipment => Box::new(&mut self.player_state.equipment_state),
+            Screen::Inventory => Box::new(&mut self.player_state.inventory_state),
         }
     }
+}
+
+fn enable_item_popup(app: &mut RatatuiApp, index: usize) {
+    app.popup = Some(Popup::Item(index))
+}
+
+fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
+    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
+    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
+    let [area] = vertical.areas(area);
+    let [area] = horizontal.areas(area);
+    area
 }
 
 impl InputHandler for RatatuiApp {
@@ -144,15 +173,26 @@ impl InputHandler for RatatuiApp {
                     let mut iter = Screen::iter();
                     loop {
                         let item = iter.next();
-                        if let Some(i) = item && i == self.focus {
+                        if let Some(i) = item
+                            && i == self.focus
+                        {
                             let new_screen = iter.next().unwrap_or_else(|| Screen::Stats);
                             self.change_screen(new_screen);
                             break;
                         }
                     }
                 }
-                _ => self.forward_input(key)
+                _ => self.forward_input(key),
             }
+        }
+    }
+}
+
+impl Observer for RatatuiApp {
+    fn on_ui_event(&mut self, event: UIEvent) {
+        match event {
+            UIEvent::InventoryItemSelected(index) => self.popup = Some(Popup::Item(index)),
+            UIEvent::EquipmentSlotSelected(slot) => {}
         }
     }
 }

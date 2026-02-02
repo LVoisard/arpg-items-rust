@@ -33,7 +33,7 @@ impl EquipmentState {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Hash, EnumIter)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone, EnumIter)]
 pub enum EquipmentSlot {
     Helmet,
     Ring,
@@ -61,6 +61,7 @@ impl Display for EquipmentSlot {
 }
 
 impl EquipmentState {
+
     fn select_next_equipment_slot(&mut self) {
         if let Some(slot) = &self.selected {
             let mut index = EquipmentSlot::iter().position(|s| s == *slot).unwrap();
@@ -96,6 +97,7 @@ impl EquipmentState {
     fn remove_selection(&mut self) {
         self.selected = None;
     }
+
 }
 
 impl InputHandler for EquipmentState {
