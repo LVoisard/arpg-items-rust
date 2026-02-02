@@ -4,3 +4,4 @@ pub mod player;
 pub mod ui;
 pub mod world;
 pub mod stats;
+pub mod popup;

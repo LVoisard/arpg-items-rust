@@ -1,4 +1,4 @@
-use crate::input::input_handler::InputHandler;
+use crate::input::input_handler::{InputEvent, InputHandler};
 use crate::model::item::Item;
 use crossterm::event::{KeyCode, KeyEvent};
 use std::{collections::HashMap, fmt::Display};
@@ -101,11 +101,11 @@ impl EquipmentState {
 }
 
 impl InputHandler for EquipmentState {
-    fn handle_key_event(&mut self, key: KeyEvent) {
+    fn handle_key_event(&mut self, key: KeyEvent) -> InputEvent {
         match key.code {
-            KeyCode::Up => self.select_previous_equipment_slot(),
-            KeyCode::Down => self.select_next_equipment_slot(),
-            _ => {}
+            KeyCode::Up => {self.select_previous_equipment_slot(); InputEvent::Consumed},
+            KeyCode::Down => {self.select_next_equipment_slot(); InputEvent::Consumed},
+            _ => { InputEvent::Ignored }
         }
     }
 }

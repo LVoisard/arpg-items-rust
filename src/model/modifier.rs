@@ -16,6 +16,7 @@ impl Debug for Box<dyn Modifier> {
     }
 }
 
+
 pub enum ModifierKind {
     Flat,
     Percent,

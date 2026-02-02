@@ -1,17 +1,15 @@
-use std::sync::Arc;
-use crate::input::input_handler::InputHandler;
+use crate::input::input_handler::{InputEvent, InputHandler};
 use crate::model::inventory::Inventory;
 use crate::ui::focusable::Focusable;
-use crate::ui::ratatui::observer::{UIEvent, Publisher, Observer};
 use crate::ui::ratatui::state::ui::UIState;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::widgets::ListState;
+use std::sync::{Arc, Weak};
 
 pub struct InventoryState {
     pub inventory: Inventory,
     pub state: ListState,
     pub ui_state: UIState,
-    pub publisher: Publisher,
 }
 
 impl InventoryState {
@@ -20,17 +18,11 @@ impl InventoryState {
             inventory,
             state: ListState::default(),
             ui_state: UIState { focused: false },
-            publisher: Publisher::new(),
         }
     }
 }
 
 impl InventoryState {
-    pub fn add_on_item_selected_listener(&mut self, listener: Arc<dyn Observer>) {
-        self.publisher
-            .subscribe(listener)
-    }
-
     fn select_next_item(&mut self) {
         if self.select_if_none() {
             return;
@@ -68,16 +60,18 @@ impl InventoryState {
 }
 
 impl InputHandler for InventoryState {
-    fn handle_key_event(&mut self, key: KeyEvent) {
+    fn handle_key_event(&mut self, key: KeyEvent) -> InputEvent {
         match key.code {
-            KeyCode::Up => self.select_previous_item(),
-            KeyCode::Down => self.select_next_item(),
+            KeyCode::Up => { self.select_previous_item(); InputEvent::Consumed },
+            KeyCode::Down => {self.select_next_item(); InputEvent::Consumed },
             KeyCode::Enter => {
                 if let Some(index) = self.state.selected() {
-                    self.publisher.notify(UIEvent::InventoryItemSelected(index))
+                    InputEvent::Selected(index)
+                } else {
+                    InputEvent::Ignored
                 }
             }
-            _ => {}
+            _ => InputEvent::Ignored
         }
     }
 }

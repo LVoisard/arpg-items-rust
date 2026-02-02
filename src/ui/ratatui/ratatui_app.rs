@@ -1,14 +1,14 @@
-use std::cell::RefCell;
-use crate::input::input_handler::InputHandler;
+use crate::input::input_handler::{InputEvent, InputHandler};
 use crate::model::item::ItemRarity;
 use crate::ui::focusable::Focusable;
-use crate::ui::ratatui::observer::{Observer, Publisher, UIEvent};
 use crate::ui::ratatui::state::player::PlayerState;
+use crate::ui::ratatui::state::popup::ItemPopupState;
 use crate::ui::ratatui::state::world::WorldState;
 use crate::ui::ratatui::view_models::item::ItemViewModel;
 use crate::ui::ratatui::widgets::equipment::PlayerEquipmentWidget;
 use crate::ui::ratatui::widgets::inventory::PlayerInventoryWidget;
 use crate::ui::ratatui::widgets::player_stats::PlayerStatsWidget;
+use crate::ui::ratatui::widgets::popup::ItemPopupWidget;
 use crate::ui::ratatui::widgets::world::WorldWidget;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use ratatui::buffer::Buffer;
@@ -18,9 +18,7 @@ use ratatui::style::{Color, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Clear, Paragraph, Widget};
 use ratatui::{DefaultTerminal, Frame};
-use std::collections::HashMap;
-use std::rc::Rc;
-use std::sync::Arc;
+use std::cmp::PartialEq;
 use strum::{Display, EnumIter, IntoEnumIterator};
 
 #[derive(PartialEq, EnumIter, Display)]
@@ -31,8 +29,8 @@ enum Screen {
     Inventory,
 }
 
-enum Popup {
-    Item(usize),
+pub enum PopupType {
+    Item(ItemPopupState),
 }
 
 pub struct RatatuiApp {
@@ -40,11 +38,7 @@ pub struct RatatuiApp {
     player_state: PlayerState,
     world_state: WorldState,
     focus: Screen,
-    popup: Option<Popup>,
-}
-
-struct AppObserver {
-    app: Rc<RefCell<RatatuiApp>>
+    popup: Option<PopupType>,
 }
 
 impl RatatuiApp {
@@ -62,7 +56,9 @@ impl RatatuiApp {
         while !self.should_exit() {
             terminal.draw(|frame| self.render(frame))?;
             match crossterm::event::read()? {
-                crossterm::event::Event::Key(key) => self.handle_key_event(key),
+                crossterm::event::Event::Key(key) => {
+                    self.handle_key_event(key);
+                }
                 _ => {}
             }
         }
@@ -110,26 +106,52 @@ impl RatatuiApp {
         frame.render_widget(footer, root_layout[1]);
 
         if let Some(popup) = &self.popup {
+            let area = popup_area(frame.area(), 40, 20);
+
             match popup {
-                Popup::Item(index) => {
-                    let item = self.player_state.inventory_state.inventory.iter().nth(*index).unwrap();
-                    let block = Block::bordered().title(item.item_base.clone());
-                    let area = popup_area(frame.area(), 60, 20);
-                    frame.render_widget(Clear, area); //this clears out the background
-                    frame.render_widget(block, area);
+                PopupType::Item(state) => {
+                    let item = self
+                        .player_state
+                        .inventory_state
+                        .inventory
+                        .iter()
+                        .nth(state.index)
+                        .unwrap();
+
+                    let popup_widget = ItemPopupWidget::new(ItemViewModel::from(
+                        item,
+                        &self.player_state.stats_state.stats,
+                    ));
+                    frame.render_widget(Clear, area);
+                    frame.render_widget(popup_widget, area);
                 }
+            };
+        }
+    }
+
+    fn forward_input(&mut self, key: KeyEvent) -> InputEvent {
+        if let Some(popup) = &mut self.popup {
+            return match popup {
+                PopupType::Item(state) => state.handle_key_event(key),
+            };
+        }
+
+        let input = match self.focus {
+            Screen::Stats => InputEvent::Ignored,
+            Screen::World => InputEvent::Ignored,
+            Screen::Equipment => self.player_state.equipment_state.handle_key_event(key),
+            Screen::Inventory => self.player_state.inventory_state.handle_key_event(key),
+        };
+
+        match input {
+            InputEvent::Consumed => {}
+            InputEvent::Ignored => {}
+            InputEvent::Selected(index) => {
+                self.on_input_select(index);
             }
         }
 
-    }
-
-    fn forward_input(&mut self, key: KeyEvent) {
-        match self.focus {
-            Screen::Stats => {}
-            Screen::World => {}
-            Screen::Equipment => self.player_state.equipment_state.handle_key_event(key),
-            Screen::Inventory => self.player_state.inventory_state.handle_key_event(key),
-        }
+        input
     }
 
     fn change_screen(&mut self, new_screen: Screen) {
@@ -146,14 +168,21 @@ impl RatatuiApp {
             Screen::Inventory => Box::new(&mut self.player_state.inventory_state),
         }
     }
+
+    fn on_input_select(&mut self, index: usize) {
+        match self.focus {
+            Screen::Stats => {}
+            Screen::World => {}
+            Screen::Equipment => {}
+            Screen::Inventory => {
+                self.popup = Some(PopupType::Item(ItemPopupState::new(index)));
+            }
+        }
+    }
 }
 
-fn enable_item_popup(app: &mut RatatuiApp, index: usize) {
-    app.popup = Some(Popup::Item(index))
-}
-
-fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
-    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
+fn popup_area(area: Rect, percent_x: u16, length_y: u16) -> Rect {
+    let vertical = Layout::vertical([Constraint::Length(length_y)]).flex(Flex::Center);
     let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
     let [area] = vertical.areas(area);
     let [area] = horizontal.areas(area);
@@ -161,39 +190,66 @@ fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
 }
 
 impl InputHandler for RatatuiApp {
-    fn handle_key_event(&mut self, key: KeyEvent) {
-        if key.kind == KeyEventKind::Press {
-            match key.code {
-                KeyCode::Esc => self.exit = true,
-                KeyCode::Char('s') => self.change_screen(Screen::Stats),
-                KeyCode::Char('w') => self.change_screen(Screen::World),
-                KeyCode::Char('i') => self.change_screen(Screen::Inventory),
-                KeyCode::Char('e') => self.change_screen(Screen::Equipment),
-                KeyCode::Tab => {
-                    let mut iter = Screen::iter();
-                    loop {
-                        let item = iter.next();
-                        if let Some(i) = item
-                            && i == self.focus
-                        {
-                            let new_screen = iter.next().unwrap_or_else(|| Screen::Stats);
-                            self.change_screen(new_screen);
-                            break;
+    fn handle_key_event(&mut self, key: KeyEvent) -> InputEvent {
+        let input = if key.kind == KeyEventKind::Press {
+            let i = match self.forward_input(key) {
+                InputEvent::Consumed => return InputEvent::Consumed,
+                _ => InputEvent::Ignored,
+            };
+
+            if key.code == KeyCode::Esc {
+                if self.popup.is_some() {
+                    self.popup = None;
+                } else {
+                    self.exit = true;
+                }
+            }
+
+            if self.popup.is_none() {
+                match key.code {
+                    KeyCode::Char('s') => {
+                        self.change_screen(Screen::Stats);
+                        InputEvent::Consumed
+                    }
+                    KeyCode::Char('w') => {
+                        self.change_screen(Screen::World);
+                        InputEvent::Consumed
+                    }
+                    KeyCode::Char('i') => {
+                        self.change_screen(Screen::Inventory);
+                        InputEvent::Consumed
+                    }
+                    KeyCode::Char('e') => {
+                        self.change_screen(Screen::Equipment);
+                        InputEvent::Consumed
+                    }
+                    KeyCode::Tab => {
+                        let mut iter = Screen::iter();
+                        loop {
+                            let item = iter.next();
+                            if let Some(i) = item
+                                && i == self.focus
+                            {
+                                let new_screen = iter.next().unwrap_or_else(|| Screen::Stats);
+                                self.change_screen(new_screen);
+                                break InputEvent::Consumed;
+                            }
                         }
                     }
-                }
-                _ => self.forward_input(key),
+                    _ => InputEvent::Ignored,
+                };
             }
-        }
-    }
-}
 
-impl Observer for RatatuiApp {
-    fn on_ui_event(&mut self, event: UIEvent) {
-        match event {
-            UIEvent::InventoryItemSelected(index) => self.popup = Some(Popup::Item(index)),
-            UIEvent::EquipmentSlotSelected(slot) => {}
-        }
+            if i == InputEvent::Ignored {
+                return match key.code {
+                    _ => InputEvent::Consumed,
+                };
+            };
+            i
+        } else {
+            InputEvent::Ignored
+        };
+        input
     }
 }
 
