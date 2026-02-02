@@ -1,5 +1,4 @@
 use crate::input::input_handler::{InputEvent, InputHandler};
-use crate::model::item::ItemRarity;
 use crate::ui::focusable::Focusable;
 use crate::ui::ratatui::state::player::PlayerState;
 use crate::ui::ratatui::state::popup::ItemPopupState;
@@ -8,15 +7,13 @@ use crate::ui::ratatui::view_models::item::ItemViewModel;
 use crate::ui::ratatui::widgets::equipment::PlayerEquipmentWidget;
 use crate::ui::ratatui::widgets::inventory::PlayerInventoryWidget;
 use crate::ui::ratatui::widgets::player_stats::PlayerStatsWidget;
-use crate::ui::ratatui::widgets::popup::ItemPopupWidget;
+use crate::ui::ratatui::widgets::item_popup::ItemPopupWidget;
 use crate::ui::ratatui::widgets::world::WorldWidget;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
-use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::prelude::Direction;
-use ratatui::style::{Color, Stylize};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, BorderType, Clear, Paragraph, Widget};
+use ratatui::text::{Line};
+use ratatui::widgets::{Block, Clear};
 use ratatui::{DefaultTerminal, Frame};
 use std::cmp::PartialEq;
 use strum::{Display, EnumIter, IntoEnumIterator};
@@ -250,88 +247,5 @@ impl InputHandler for RatatuiApp {
             InputEvent::Ignored
         };
         input
-    }
-}
-
-impl Widget for &ItemViewModel {
-    fn render(self, area: Rect, buf: &mut Buffer)
-    where
-        Self: Sized,
-    {
-        let mut block = Block::bordered().white();
-
-        block = match self.rarity {
-            ItemRarity::Magic => block.border_style(Color::Indexed(69)),
-            ItemRarity::Rare => block
-                .border_type(BorderType::Thick)
-                .border_style(Color::Indexed(227)),
-            ItemRarity::Unique => block
-                .border_type(BorderType::Thick)
-                .border_style(Color::Indexed(208)),
-            _ => block,
-        };
-
-        block = match &self.name {
-            Some(name) => match self.rarity {
-                ItemRarity::Unique => {
-                    block.title(Line::from(name.clone() + "\n").centered().on_white().bold())
-                }
-                _ => block.title(Line::from(name.clone() + "\n").centered()),
-            },
-            _ => block,
-        };
-
-        block = match self.rarity {
-            ItemRarity::Unique => block.title(
-                Line::from(self.item_base.clone() + "\n")
-                    .centered()
-                    .on_white()
-                    .bold(),
-            ),
-            _ => block.title(Line::from(self.item_base.clone() + "\n").centered()),
-        };
-
-        let mut item_description = Vec::<Line>::new();
-
-        if let Some(dmg) = &self.damage {
-            let start = Span::from("Damage: ");
-            let mut d = Span::from(format!("{} - {}", dmg.min, dmg.max));
-            if dmg.is_modified {
-                d = d.fg(Color::Indexed(69));
-            }
-            item_description.push(Line::from(vec![start, d]).centered());
-        }
-
-        for requirement in self.requirements.iter() {
-            let mut p1 = Span::from(format!(
-                "Required {}: ",
-                requirement.requirement.stat_type.to_string()
-            ));
-            let mut amt = Span::from(requirement.requirement.amount.to_string());
-            if !requirement.is_met {
-                p1 = p1.red();
-                amt = amt.red();
-            }
-
-            amt = if requirement.is_modified {
-                amt.fg(Color::Indexed(69))
-            } else {
-                amt
-            };
-
-            item_description.push(Line::from(vec![p1, amt]).centered());
-        }
-
-        for modifier in self.modifiers.iter() {
-            item_description.push(
-                Line::from(modifier.clone())
-                    .fg(Color::Indexed(69))
-                    .centered(),
-            );
-        }
-
-        Paragraph::new(item_description)
-            .block(block)
-            .render(area, buf);
     }
 }

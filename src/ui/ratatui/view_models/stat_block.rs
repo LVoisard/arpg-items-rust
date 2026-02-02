@@ -1,4 +1,3 @@
-use crate::model::stat::StatBlock;
 use crate::ui::ratatui::state::stats::StatState;
 use crate::ui::ratatui::view_models::stat::StatViewModel;
 

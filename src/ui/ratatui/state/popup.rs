@@ -1,8 +1,6 @@
 use crate::input::input_handler::{InputEvent, InputHandler};
-use crate::model::item::Item;
 use crate::ui::focusable::Focusable;
 use crate::ui::ratatui::state::ui::UIState;
-use crate::ui::ratatui::widgets::popup::ItemPopupWidget;
 use crossterm::event::KeyEvent;
 
 

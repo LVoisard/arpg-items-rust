@@ -1,4 +1,4 @@
-use crate::{model::{player::Player, stat::StatBlock}, ui::ratatui::state::{equipment::EquipmentState, inventory::InventoryState}};
+use crate::{model::{player::Player}, ui::ratatui::state::{equipment::EquipmentState, inventory::InventoryState}};
 use crate::ui::ratatui::state::stats::StatState;
 
 pub struct PlayerState {

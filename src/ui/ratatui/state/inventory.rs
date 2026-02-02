@@ -4,7 +4,6 @@ use crate::ui::focusable::Focusable;
 use crate::ui::ratatui::state::ui::UIState;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::widgets::ListState;
-use std::sync::{Arc, Weak};
 
 pub struct InventoryState {
     pub inventory: Inventory,

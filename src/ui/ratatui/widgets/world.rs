@@ -3,8 +3,6 @@ use ratatui::layout::Rect;
 use ratatui::prelude::Line;
 use ratatui::style::{Color, Style};
 use ratatui::widgets::{Block, BorderType, Widget};
-use crate::ui::focusable::Focusable;
-use crate::ui::ratatui::state::ui::UIState;
 use crate::ui::ratatui::state::world::WorldState;
 
 pub struct WorldWidget<'a> {

@@ -6,7 +6,6 @@ use ratatui::prelude::{Line, Style};
 use ratatui::style::{Color, Stylize};
 use ratatui::text::Span;
 use ratatui::widgets::{Block, BorderType, HighlightSpacing, List, ListItem, StatefulWidget, Widget};
-use crate::ui::ratatui::state::ui::UIState;
 
 pub struct PlayerInventoryWidget<'a>{
     pub inventory_state: &'a InventoryState,

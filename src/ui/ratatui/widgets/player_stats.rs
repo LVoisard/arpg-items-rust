@@ -3,12 +3,8 @@ use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, BorderType, Paragraph, Widget};
-use crate::model::stat::StatBlock;
-use crate::ui::ratatui::state::inventory::InventoryState;
 use crate::ui::ratatui::state::stats::StatState;
-use crate::ui::ratatui::state::ui::UIState;
 use crate::ui::ratatui::view_models::stat_block::StatBlockViewModel;
-use crate::ui::ratatui::widgets::inventory::PlayerInventoryWidget;
 
 pub struct PlayerStatsWidget<'a> {
     pub stats: &'a StatState,

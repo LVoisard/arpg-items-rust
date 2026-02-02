@@ -64,7 +64,7 @@ impl EquipmentState {
 
     fn select_next_equipment_slot(&mut self) {
         if let Some(slot) = &self.selected {
-            let mut index = EquipmentSlot::iter().position(|s| s == *slot).unwrap();
+            let index = EquipmentSlot::iter().position(|s| s == *slot).unwrap();
             let index = if index == EquipmentSlot::iter().len() - 1 {
                 0
             } else {
@@ -76,7 +76,7 @@ impl EquipmentState {
 
     fn select_previous_equipment_slot(&mut self) {
         if let Some(slot) = &self.selected {
-            let mut index = EquipmentSlot::iter().position(|s| s == *slot).unwrap();
+            let index = EquipmentSlot::iter().position(|s| s == *slot).unwrap();
             let index = if index == 0 {
                 EquipmentSlot::iter().len() - 1
             } else {
